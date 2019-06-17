@@ -1,13 +1,24 @@
+/**
+ * @authors         Moritz Noerenberg; Jacob Ueltzen
+ * @date            June 2019
+ * @brief           Project des Faches Mikrorechnerarchitekturen. Entwurf eines C-Programmes zur Implementierung eines Weckers auf dem MPS430 Education-Board.
+ *
+ */
+
+
 #include <msp430.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include "lcd.h"
 
+//Funktionsankündigungen
 void outputtime();
 void outputdate();
 void timeCorrection();
 char schaltjahr();
+
+//Typendefinitionen
 typedef struct
 {
     uint8_t sec;
@@ -20,27 +31,27 @@ typedef struct
 } time_t;
 
 time_t time;
-
+//Hauptprogramm
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL;
-    IE1 |= WDTIE;
+    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL;     //Intitialisierung des Watchdog Timers set for 1sec im continous mode, reset to 0, selected ACLK as source
+    IE1 |= WDTIE;           //WDT Interrupt enable
 
-    time.sec = 55;
+    time.sec = 55;          //start times
     time.min = 59;
     time.hour = 23;
     time.day = 28;
     time.mon = 2;
     time.year = 2019;
 
-    __enable_interrupt();
+    __enable_interrupt();       //
 
-    lcd_init();
-    outputtime(time);
+    lcd_init();         //Initialisiert das Display
+    outputtime(time);       //Funktionsaufruf
 
-    while (1)
+    while (1)           //Schleife zur sekündlichen Aktualisierung des Display mit Uhrzeit und Datum
     {
         outputtime();
         outputdate();
@@ -52,7 +63,7 @@ int main(void)
 
 }
 
-void outputtime()
+void outputtime()           //Funktion zur Ausgabe der Zeit auf dem Display mittels Zerlegung in Einzelkomponenten und zeichenweiser Ausgabe
 {
     lcd_gotoxy(4, 0);
     lcd_put_char((time.hour - (time.hour % 10)) / 10 + 48);
@@ -65,7 +76,7 @@ void outputtime()
     lcd_put_char((time.sec % 10) + 48);
 }
 
-void timeCorrection()
+void timeCorrection()           //Funktion zum Überlauf handling für alle Zeiteinheiten
 {
     if (time.sec > 59)
     {
@@ -123,7 +134,7 @@ void timeCorrection()
 }
 
 
-void outputdate()
+void outputdate()           //Funktion zur Ausgabe des Datums
 {
     lcd_gotoxy(3, 1);
     lcd_put_char((time.day - (time.day % 10)) / 10 + 48);
@@ -133,12 +144,12 @@ void outputdate()
     lcd_put_char((time.mon % 10) + 48);
     lcd_write(".");
 
-    char Jahr[5];
+    char Jahr[5];               //Zerlegung der Strucktur time.year in ein Array zur einfacheren Ausgabe der vollständigen Jahreszahl
     snprintf(Jahr, sizeof(Jahr), "%d", time.year);
     lcd_write(Jahr);
 }
 
-#pragma vector=WDT_VECTOR
+#pragma vector=WDT_VECTOR       //Interrupt Vektor, der die Struktur time.sec sekündlich um 1 erhöht.
 __interrupt void WDT_ISR()
 {
     time.sec++;
