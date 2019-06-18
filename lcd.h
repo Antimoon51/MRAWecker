@@ -14,6 +14,6 @@ void lcd_init();
 void lcd_gotoxy(uint8_t x, uint8_t y);
 void lcd_put_char(char c);
 void lcd_write(const char *str);
-
+void lcd_clear();
 
 #endif /* LCD_H_ */

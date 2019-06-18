@@ -5,7 +5,6 @@
  *
  */
 
-
 #include <msp430.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -16,8 +15,14 @@
 void outputtime();
 void outputdate();
 void timeCorrection();
+void startupscreen();
+void setuptime();
+
 char schaltjahr();
 
+uint16_t a = 48;                     //Zählervariable für Drehencoder
+static volatile uint8_t buttonpressed = 0; //Variable für die 4 Taster, (Taster 1 Bit 0, Taster 2 Bit 1 usw.)
+static volatile uint8_t button_flag = 0;
 //Typendefinitionen
 typedef struct
 {
@@ -31,41 +36,61 @@ typedef struct
 } time_t;
 
 time_t time;
-//Hauptprogramm
+
+//Initialisierungen:
+
+/*-----------------------------------------------------------------*/
+//ANFANG HAUPTPROGRAMM
+/*-----------------------------------------------------------------*/
+
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL;     //Intitialisierung des Watchdog Timers set for 1sec im continous mode, reset to 0, selected ACLK as source
-    IE1 |= WDTIE;           //WDT Interrupt enable
 
-    time.sec = 55;          //start times
-    time.min = 59;
-    time.hour = 23;
-    time.day = 28;
-    time.mon = 2;
+
+    time.sec = 0;          //init times
+    time.min = 0;
+    time.hour = 0;
+    time.day = 1;
+    time.mon = 1;
     time.year = 2019;
 
-    __enable_interrupt();       //
+    //buttonpressed = 0;
 
-    lcd_init();         //Initialisiert das Display
-    outputtime(time);       //Funktionsaufruf
 
-    while (1)           //Schleife zur sekündlichen Aktualisierung des Display mit Uhrzeit und Datum
+
+    P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3;              //interrupt init Button und dreencoder
+    P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
+    P2IE |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3;
+
+    __enable_interrupt();
+
+    lcd_init();  //Initialisiert das Display
+
+    startupscreen();
+
+    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; //Intitialisierung des Watchdog Timers set for 1sec im continous mode, reset to 0, selected ACLK as source
+       IE1 |= WDTIE;           //WDT Interrupt enable
+
+
+    while (1) //Schleife zur sekündlichen Aktualisierung des Display mit Uhrzeit und Datum
     {
+        lcd_gotoxy(4, 0);
         outputtime();
         outputdate();
         __low_power_mode_3();
         timeCorrection();
-
-
     }
 
 }
 
-void outputtime()           //Funktion zur Ausgabe der Zeit auf dem Display mittels Zerlegung in Einzelkomponenten und zeichenweiser Ausgabe
+/*-----------------------------------------------------------------*/
+//ENDE HAUPTPROGRAMM
+/*-----------------------------------------------------------------*/
+
+void outputtime() //Funktion zur Ausgabe der Zeit auf dem Display mittels Zerlegung in Einzelkomponenten und zeichenweiser Ausgabe
 {
-    lcd_gotoxy(4, 0);
     lcd_put_char((time.hour - (time.hour % 10)) / 10 + 48);
     lcd_put_char((time.hour % 10) + 48);
     lcd_write(":");
@@ -76,7 +101,22 @@ void outputtime()           //Funktion zur Ausgabe der Zeit auf dem Display mitt
     lcd_put_char((time.sec % 10) + 48);
 }
 
-void timeCorrection()           //Funktion zum Überlauf handling für alle Zeiteinheiten
+void outputdate()           //Funktion zur Ausgabe des Datums
+{
+    lcd_gotoxy(3, 1);
+    lcd_put_char((time.day - (time.day % 10)) / 10 + 48);
+    lcd_put_char((time.day % 10) + 48);
+    lcd_write(".");
+    lcd_put_char((time.mon - (time.mon % 10)) / 10 + 48);
+    lcd_put_char((time.mon % 10) + 48);
+    lcd_write(".");
+
+    char Jahr[5]; //Zerlegung der Strucktur time.year in ein Array zur einfacheren Ausgabe der vollständigen Jahreszahl
+    snprintf(Jahr, sizeof(Jahr), "%d", time.year);
+    lcd_write(Jahr);
+}
+
+void timeCorrection()    //Funktion zum Überlauf handling für alle Zeiteinheiten
 {
     if (time.sec > 59)
     {
@@ -110,8 +150,9 @@ void timeCorrection()           //Funktion zum Überlauf handling für alle Zeitei
                 }
                 else if (time.mon == 2)
                 {
-                  if (time.year % 4 == 0 && time.year % 100 != 0 || time.year % 400 == 0)
-                {
+                    if (time.year % 4 == 0 && time.year % 100 != 0
+                            || time.year % 400 == 0)
+                    {
                         if (time.day > 29)
                         {
                             time.mon++;
@@ -133,21 +174,200 @@ void timeCorrection()           //Funktion zum Überlauf handling für alle Zeitei
     }
 }
 
-
-void outputdate()           //Funktion zur Ausgabe des Datums
+void startupscreen()
 {
-    lcd_gotoxy(3, 1);
-    lcd_put_char((time.day - (time.day % 10)) / 10 + 48);
-    lcd_put_char((time.day % 10) + 48);
-    lcd_write(".");
-    lcd_put_char((time.mon - (time.mon % 10)) / 10 + 48);
-    lcd_put_char((time.mon % 10) + 48);
-    lcd_write(".");
+    lcd_clear();
+    lcd_gotoxy(2, 0);
+    lcd_write("Willkommen!!");
+    __delay_cycles(1000000);
+    lcd_gotoxy(0, 1);
+    lcd_write("Initialisierung:");
+    __delay_cycles(1000000);
+    lcd_clear();
+    lcd_write("Uhrzeit?:");
+    lcd_gotoxy(4, 1);
+    outputtime();
+    setuptime();
+    lcd_clear();
 
-    char Jahr[5];               //Zerlegung der Strucktur time.year in ein Array zur einfacheren Ausgabe der vollständigen Jahreszahl
-    snprintf(Jahr, sizeof(Jahr), "%d", time.year);
-    lcd_write(Jahr);
 }
+
+void setuptimealt2()
+{
+    while (!(button_flag & BIT0))
+    {
+        //        if (button_flag & BIT0) {
+        //            lcd_gotoxy(0,0);
+        //            lcd_write("hallo");
+        //            button_flag &= ~BIT0;
+        //        } else if (button_flag & BIT1) {
+        //            P1OUT--;
+        //            button_flag &= ~BIT1;
+        //        } else if (button_flag & BIT2) {
+        //            P1OUT = 0;
+        //            button_flag &= ~BIT2;
+        //        } else if (button_flag & BIT3) {
+        //            P1OUT = 0xAA;
+        //            button_flag &= ~BIT3;
+        //        } else {
+        //            __low_power_mode_4();
+        //        }
+
+    }
+    button_flag &= ~BIT0;
+    lcd_gotoxy(0, 1);
+    lcd_write("ende");
+}
+
+void setuptimealt()
+{
+    a = 0;
+    while (!(buttonpressed & BIT0))
+    {
+        if (a > 9)
+        {
+            a = 0;
+        }
+        if (a < 0)
+        {
+            a = 9;
+        }
+        lcd_gotoxy(0, 1);
+        lcd_put_char(a + 48);
+        __low_power_mode_3();
+
+    }
+    buttonpressed &= ~BIT0;             //Buttonflag zurücksetzen
+    time.hour = a;
+}
+
+void setuptime()
+{
+
+
+    a = 48;
+
+
+    while (!(button_flag & BIT0))           // studen Zehner
+    {
+        if (a > 50)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 50;
+        }
+
+        lcd_gotoxy(4, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;             //Buttonflag zurücksetzen
+    time.hour = (a - 48) * 10;
+
+
+    a = 48;
+    while (!(button_flag & BIT0))           //Stunden einer
+    {
+        if (a > 57)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 57;
+        }
+
+        lcd_gotoxy(5, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;
+    time.hour = time.hour + (a - 48);
+
+
+    a = 48;
+    while (!(button_flag & BIT0))           //minuten Zehner
+    {
+        if (a > 53)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 53;
+        }
+
+        lcd_gotoxy(7, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;
+    time.min = 10 * (a - 48);
+
+    a = 48;
+    while (!(button_flag & BIT0))           //Einstellung Einer der Minuten
+    {
+        if (a > 57)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 57;
+        }
+        lcd_gotoxy(8, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;
+    time.min = time.min + (a - 48);
+
+
+
+    a = 48;
+    while (!(button_flag & BIT0))               //Einstellung Zehner der Sekunden
+    {
+        if (a > 53)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 53;
+        }
+        lcd_gotoxy(10, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;
+    time.sec = (a - 48) * 10;
+
+
+
+    a = 48;
+    while (!(button_flag & BIT0))           //Einstellen einer sekunde
+    {
+        if (a > 57)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 57;
+        }
+        lcd_gotoxy(11, 1);
+        lcd_put_char(a);
+        __low_power_mode_3();
+    }
+    button_flag &= ~BIT0;
+    time.sec = time.sec + (a - 48);
+
+}
+/*---------------------------------------------------------------------------------------------
+ * INTERRUPTSECTION
+ ----------------------------------------------------------------------------------------------*/
 
 #pragma vector=WDT_VECTOR       //Interrupt Vektor, der die Struktur time.sec sekündlich um 1 erhöht.
 __interrupt void WDT_ISR()
@@ -155,3 +375,50 @@ __interrupt void WDT_ISR()
     time.sec++;
     __low_power_mode_off_on_exit();
 }
+
+#pragma vector=PORT2_VECTOR     // Interrupt Vektor für Drehencoder und Taster
+__interrupt void PORT2_ISR()
+{
+    if (P2IFG & BIT0)
+    {
+        P2IFG &= ~BIT0;
+        button_flag |= BIT0;
+        __low_power_mode_off_on_exit();
+    }
+    if (P2IFG & BIT1)
+    {
+        P2IFG &= ~BIT1;
+        button_flag |= BIT1;
+        __low_power_mode_off_on_exit();
+    }
+    if (P2IFG & BIT2)
+    {
+        P2IFG &= ~BIT2;
+        button_flag |= BIT2;
+        __low_power_mode_off_on_exit();
+    }
+    if (P2IFG & BIT5)
+    {
+        P2IFG &= ~BIT5;
+        button_flag |= BIT3;
+        __low_power_mode_off_on_exit();
+    }
+
+    if (P2IFG & BIT3)
+    {
+        P2IFG &= ~BIT3;
+
+        if (P4IN & BIT1)
+        {          // downwards
+            a--;
+        }
+        else if (P4IN & BIT2)
+        {   //upwards
+            a++;
+        }
+
+        __low_power_mode_off_on_exit();
+    }
+
+}
+
