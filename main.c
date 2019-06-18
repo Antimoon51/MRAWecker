@@ -56,7 +56,7 @@ int main(void)
     time.mon = 1;
     time.year = 2019;
 
-    //buttonpressed = 0;
+
 
 
 
@@ -190,55 +190,6 @@ void startupscreen()
     setuptime();
     lcd_clear();
 
-}
-
-void setuptimealt2()
-{
-    while (!(button_flag & BIT0))
-    {
-        //        if (button_flag & BIT0) {
-        //            lcd_gotoxy(0,0);
-        //            lcd_write("hallo");
-        //            button_flag &= ~BIT0;
-        //        } else if (button_flag & BIT1) {
-        //            P1OUT--;
-        //            button_flag &= ~BIT1;
-        //        } else if (button_flag & BIT2) {
-        //            P1OUT = 0;
-        //            button_flag &= ~BIT2;
-        //        } else if (button_flag & BIT3) {
-        //            P1OUT = 0xAA;
-        //            button_flag &= ~BIT3;
-        //        } else {
-        //            __low_power_mode_4();
-        //        }
-
-    }
-    button_flag &= ~BIT0;
-    lcd_gotoxy(0, 1);
-    lcd_write("ende");
-}
-
-void setuptimealt()
-{
-    a = 0;
-    while (!(buttonpressed & BIT0))
-    {
-        if (a > 9)
-        {
-            a = 0;
-        }
-        if (a < 0)
-        {
-            a = 9;
-        }
-        lcd_gotoxy(0, 1);
-        lcd_put_char(a + 48);
-        __low_power_mode_3();
-
-    }
-    buttonpressed &= ~BIT0;             //Buttonflag zurücksetzen
-    time.hour = a;
 }
 
 void setuptime()
