@@ -41,8 +41,8 @@ void lcd_init() {
     send_8bit(0x2, LCD_COMMAND);    // Function set: 4Bit
 
     send_4bit(0x28, LCD_COMMAND);   // Function set: 4bit, 2Line
-    send_4bit(0x0E, LCD_COMMAND);   // Display on/off: on, mit cursor unten
-    //send_4bit(0x0C, LCD_COMMAND);   // Display on/off: on, keine Cursor
+    //send_4bit(0x0E, LCD_COMMAND);   // Display on/off: on, mit cursor unten
+    send_4bit(0x0C, LCD_COMMAND);   // Display on/off: on, keine Cursor
     send_4bit(0x06, LCD_COMMAND);// Entry mode set: Links nach rechts, überschreiben
     send_4bit(0x01, LCD_COMMAND);   // Clear Display
 
@@ -179,4 +179,12 @@ void lcd_clear(){
     lcd_gotoxy(0,1);
     lcd_write("                ");
     lcd_gotoxy(0,0);
+}
+
+void lcd_cursor_on() {
+    send_4bit(0x0E, LCD_COMMAND);
+}
+
+void lcd_cursor_off() {
+    send_4bit(0x0C, LCD_COMMAND);
 }
