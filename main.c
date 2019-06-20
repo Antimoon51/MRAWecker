@@ -13,12 +13,6 @@
 #include "setup.h"
 #include "alarm.h"
 
-
-
-
-
-
-
 /*-----------------------------------------------------------------*/
 //ANFANG HAUPTPROGRAMM
 /*-----------------------------------------------------------------*/
@@ -27,15 +21,17 @@ int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    time.sec = 55;          //init times
-    time.min = 59;
-    time.hour = 23;
-    time.day = 13;
-    time.mon = 6;
+    time.sec = 0;          //init times
+    time.min = 0;
+    time.hour = 0;
+    time.day = 1;
+    time.mon = 1;
     time.year = 2019;
 
     alarm.hour = 0;
     alarm.min = 0;
+    alarm.sec = 0;
+
 
     P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3; //interrupt init Button und drehencoder
     P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
@@ -71,6 +67,19 @@ int main(void)
             outputday();
         }
 
+        if (time.hour == alarm.hour && time.min == alarm.min
+                && alarm.sec == time.sec && d == 1)
+        {
+
+            while (!(button_flag & BIT0))
+            {
+                wakeup();
+                lcd_clear();
+                timeCorrection();
+
+            }
+        }
+
         __low_power_mode_3();
 
     }
@@ -80,9 +89,6 @@ int main(void)
 /*-----------------------------------------------------------------*/
 //ENDE HAUPTPROGRAMM
 /*-----------------------------------------------------------------*/
-
-
-
 
 /*---------------------------------------------------------------------------------------------
  * INTERRUPTSECTION

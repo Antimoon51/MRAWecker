@@ -11,6 +11,7 @@
 
 typedef struct
 {
+    uint8_t sec;
     uint8_t min;
     uint8_t hour;
 } alarm_t;
@@ -18,10 +19,13 @@ typedef struct
 alarm_t alarm;
 alarm_t alarmold;
 
+extern volatile uint8_t d;
+
 
 void setupalarm();
 void outputalarm();
 void alarmmenu();
+void wakeup();
 
 
 

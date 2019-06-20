@@ -13,7 +13,7 @@
 #include "setup.h"
 #include "alarm.h"
 
-
+extern volatile uint8_t d = 0;
 
 void setupalarm()
 {
@@ -22,7 +22,7 @@ void setupalarm()
     alarmold.hour = alarm.hour;
     alarmold.min = alarm.min;
 
-    a = (alarmold.hour - alarmold.hour%10)/10 + 48;
+    a = (alarmold.hour - alarmold.hour % 10) / 10 + 48;
 
     while (!(button_flag & BIT0))           // stunden Zehner
     {
@@ -44,7 +44,7 @@ void setupalarm()
     button_flag &= ~BIT0;             //Buttonflag zurücksetzen
     alarm.hour = (a - 48) * 10;
 
-    a = alarmold.hour%10 + 48;
+    a = alarmold.hour % 10 + 48;
     while (!(button_flag & BIT0))           //Stunden einer
     {
         if (alarm.hour == 20)
@@ -79,8 +79,7 @@ void setupalarm()
     button_flag &= ~BIT0;
     alarm.hour = alarm.hour + (a - 48);
 
-
-    a = (alarmold.min - alarmold.min%10)/10 + 48;
+    a = (alarmold.min - alarmold.min % 10) / 10 + 48;
     while (!(button_flag & BIT0))           //minuten Zehner
     {
         if (a > 53)
@@ -101,7 +100,7 @@ void setupalarm()
     button_flag &= ~BIT0;
     alarm.min = 10 * (a - 48);
 
-    a = alarmold.min%10 + 48;
+    a = alarmold.min % 10 + 48;
 
     while (!(button_flag & BIT0))           //Einstellung Einer der Minuten
     {
@@ -121,6 +120,27 @@ void setupalarm()
     __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT0;
     alarm.min = alarm.min + (a - 48);
+
+    a = 48;
+    while (!(button_flag & BIT0))
+    {
+        if (a > 49)
+        {
+            a = 48;
+        }
+        if (a < 48)
+        {
+            a = 49;
+        }
+        lcd_gotoxy(8, 1);
+        lcd_put_char(a);
+        lcd_gotoxy(8, 1);
+        __low_power_mode_3();
+    }
+    __delay_cycles(5000L);                  //entprellen des Tasters
+    button_flag &= ~BIT0;
+    lcd_write("               ");
+    d = a - 48;
 
 }
 
@@ -152,6 +172,8 @@ void alarmmenu()
             lcd_write("                 ");
             lcd_gotoxy(0, 1);
             outputalarm();
+            lcd_gotoxy(8, 1);
+            lcd_write("0");
             lcd_cursor_on();
             setupalarm();
             lcd_cursor_off();
@@ -161,5 +183,15 @@ void alarmmenu()
     __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT5;
     lcd_clear();
+}
+
+void wakeup()
+{
+    lcd_clear();
+    __delay_cycles(1000000);
+    lcd_gotoxy(4, 0);
+    lcd_write("ALARM!!!");
+    __delay_cycles(1000000);
+
 }
 
