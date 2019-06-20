@@ -9,9 +9,11 @@
 #define SETUP_H_
 
 extern volatile uint8_t button_flag; //Variable für die 4 Taster, (Taster 1 Bit 0, Taster 2 Bit 1 usw.)
-extern volatile uint8_t second_flag;
+extern volatile uint8_t second_flag;    //sekündlich auslösendes Flag für das LCD, damit nur alle Sekunde aktualisiert wird
 
-typedef struct
+
+//Typendefinition
+typedef struct              //Variablen für die Weckerzeiten
 {
     uint8_t sec;
     uint8_t min;
@@ -19,21 +21,17 @@ typedef struct
     uint8_t day;
     uint8_t mon;
     uint16_t year;
-    char weekday;
 } time_t;
 
-typedef struct
-{
-    uint8_t min;
-    uint8_t hour;
-} alarm_t;
+
 
 time_t time;
-alarm_t alarm;
 
-uint16_t a;                   //Zählervariable für Drehencoder
-uint8_t weekdayi;
 
+extern volatile uint16_t a;                   //Zählervariable für Drehencoder
+extern volatile uint8_t weekdayi;               //Laufvariable für die Wochentage 0=Son ; 6=Sam
+
+//Funktionsprototypen
 void outputtime();
 void outputdate();
 void timeCorrection();

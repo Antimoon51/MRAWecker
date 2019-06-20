@@ -15,6 +15,10 @@
 extern volatile uint8_t button_flag = 0; //Variable für die 4 Taster, (Taster 1 Bit 0, Taster 2 Bit 1 usw.)
 extern volatile uint8_t second_flag = 0;
 
+extern volatile uint16_t a = 0;                   //Zählervariable für Drehencoder
+extern volatile uint8_t weekdayi = 0;               //Laufvariable für die Wochentage 0=Son ; 6=Sam
+
+
 void outputtime() //Funktion zur Ausgabe der Zeit auf dem Display mittels Zerlegung in Einzelkomponenten und zeichenweiser Ausgabe
 {
     lcd_put_char((time.hour - (time.hour % 10)) / 10 + 48);
@@ -110,7 +114,7 @@ void timeCorrection()    //Funktion zum Überlauf handling für alle Zeiteinheiten
 
 }
 
-void startupscreen()
+void startupscreen()            //Funktion, die beim einschalten aufgerufen wird und die Initialisierung managed
 {
 
     lcd_clear();
@@ -141,7 +145,7 @@ void startupscreen()
     lcd_clear();
 }
 
-void setuptime()
+void setuptime()            //Funktion zur Zeiteinstellung
 {
 
     a = 48;
@@ -278,7 +282,7 @@ void setuptime()
 
 }
 
-void setupdate()
+void setupdate()            //Funktion zur Einstellung des Datums
 {
     a = 48;
     while (!(button_flag & BIT0))           // Tage Zehner
@@ -490,7 +494,7 @@ void setupdate()
 
 
 
-void weekdayinit()
+void weekdayinit()          //Funktion zur Berechnung der Laufvariablen weekdayi mithilfe der Gauß'schen Wochentagsformel
 {
     uint8_t h;
     uint16_t k;

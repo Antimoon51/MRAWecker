@@ -27,12 +27,15 @@ int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    time.sec = 0;          //init times
-    time.min = 0;
-    time.hour = 0;
-    time.day = 1;
-    time.mon = 1;
+    time.sec = 55;          //init times
+    time.min = 59;
+    time.hour = 23;
+    time.day = 13;
+    time.mon = 6;
     time.year = 2019;
+
+    alarm.hour = 0;
+    alarm.min = 0;
 
     P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3; //interrupt init Button und drehencoder
     P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
@@ -47,7 +50,7 @@ int main(void)
     WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; //Intitialisierung des Watchdog Timers set for 1sec im continuos mode, reset to 0, selected ACLK as source
     IE1 |= WDTIE;           //WDT Interrupt enable
 
-    button_flag &= ~(BIT0 + BIT1 + BIT2 + BIT3 + BIT4 + BIT5);
+    button_flag &= ~(BIT0 + BIT1 + BIT2 + BIT3 + BIT5);
 
     while (1)
     {
