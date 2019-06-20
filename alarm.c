@@ -12,9 +12,6 @@
 #include "lcd.h"
 #include "setup.h"
 
-//extern volatile uint8_t button_flag = 0; //Variable für die 4 Taster, (Taster 1 Bit 0, Taster 2 Bit 1 usw.)
-//extern volatile uint8_t second_flag = 0;
-
 
 
 void setupalarm()
