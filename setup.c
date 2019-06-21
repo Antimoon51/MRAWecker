@@ -147,6 +147,7 @@ void startupscreen()            //Funktion, die beim einschalten aufgerufen wird
 
 void setuptime()            //Funktion zur Zeiteinstellung
 {
+    button_flag = 0;
 
     a = 48;
 
@@ -284,6 +285,7 @@ void setuptime()            //Funktion zur Zeiteinstellung
 
 void setupdate()            //Funktion zur Einstellung des Datums
 {
+    button_flag = 0;
     a = 48;
     while (!(button_flag & BIT0))           // Tage Zehner
     {

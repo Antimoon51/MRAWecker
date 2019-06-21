@@ -12,6 +12,7 @@
 #include "lcd.h"
 #include "setup.h"
 #include "alarm.h"
+#include "matrix.h"
 
 extern volatile uint8_t d = 0;
 
@@ -40,7 +41,7 @@ void setupalarm()
         lcd_gotoxy(0, 1);
         __low_power_mode_3();
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
+
     button_flag &= ~BIT0;             //Buttonflag zurücksetzen
     alarm.hour = (a - 48) * 10;
 
@@ -75,7 +76,6 @@ void setupalarm()
         lcd_gotoxy(1, 1);
         __low_power_mode_3();
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT0;
     alarm.hour = alarm.hour + (a - 48);
 
@@ -96,7 +96,6 @@ void setupalarm()
         lcd_gotoxy(3, 1);
         __low_power_mode_3();
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT0;
     alarm.min = 10 * (a - 48);
 
@@ -117,11 +116,10 @@ void setupalarm()
         lcd_gotoxy(4, 1);
         __low_power_mode_3();
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT0;
     alarm.min = alarm.min + (a - 48);
 
-    a = 48;
+    a = 48;                                                    //Alarm EIN/AUS
     while (!(button_flag & BIT0))
     {
         if (a > 49)
@@ -133,11 +131,24 @@ void setupalarm()
             a = 49;
         }
         lcd_gotoxy(8, 1);
-        lcd_put_char(a);
-        lcd_gotoxy(8, 1);
+        if (a == 48)
+        {
+            lcd_write("AUS");
+            lcd_gotoxy(8, 1);
+        }
+        else if (a == 49)
+        {
+            lcd_write("EIN");
+            lcd_gotoxy(8, 1);
+        }
+        else
+        {
+            lcd_write("ERR");
+            lcd_gotoxy(8, 1);
+        }
         __low_power_mode_3();
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
+
     button_flag &= ~BIT0;
     lcd_write("               ");
     d = a - 48;
@@ -155,9 +166,11 @@ void outputalarm()
 
 void alarmmenu()
 {
+    button_flag = 0;
     lcd_clear();
     while (!(button_flag & BIT5))
     {
+        lcd_gotoxy(0, 0);
         lcd_write("Alarme:");
         lcd_gotoxy(0, 1);
         lcd_write("set alarm 1");
@@ -166,32 +179,40 @@ void alarmmenu()
 
         if (button_flag & BIT2)
         {
-            __delay_cycles(5000L);          //entprellen des Tasters
             button_flag &= ~BIT2;
             lcd_gotoxy(0, 1);
             lcd_write("                 ");
             lcd_gotoxy(0, 1);
             outputalarm();
             lcd_gotoxy(8, 1);
-            lcd_write("0");
+            lcd_write("AUS");
             lcd_cursor_on();
             setupalarm();
             lcd_cursor_off();
             button_flag = 0;
         }
     }
-    __delay_cycles(5000L);                  //entprellen des Tasters
     button_flag &= ~BIT5;
     lcd_clear();
 }
 
 void wakeup()
 {
+    int i;
+    for (i = 0; i < 4; i++)
+    {
+        matrix_on();
+        matrix_update();
+    }
     lcd_clear();
     __delay_cycles(1000000);
     lcd_gotoxy(4, 0);
     lcd_write("ALARM!!!");
+    for (i = 0; i < 4; i++)
+    {
+        matrix_clear();
+        matrix_update();
+    }
     __delay_cycles(1000000);
-
 }
 
