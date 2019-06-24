@@ -26,7 +26,7 @@ void setupalarm();
 void outputalarm();
 void alarmmenu();
 void wakeup();
-
+void setalarmtone();
 
 
 

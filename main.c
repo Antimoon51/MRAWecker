@@ -22,7 +22,7 @@ int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    time.sec = 0;          //init times
+    time.sec = 30;          //init times
     time.min = 0;
     time.hour = 0;
     time.day = 1;
@@ -36,14 +36,14 @@ int main(void)
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
 
-//    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
-//    P2DIR |= BIT4;
-//    CCR2 = 37;
-//    CCTL2 = CCIE + OUTMOD_4;
+    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
+    P2DIR |= BIT4;
+    CCR2 = 37;
+    CCTL2 = CCIE + OUTMOD_4;
 
     CCR0 = MATRIX_UPDATE_INTERVAL;    // Timer A mit regelmäßigen CCR0-Interrupt
     CCTL0 = CCIE;
-    TACTL = TASSEL_1 + MC_2 + TACLR;
+    //TACTL = TASSEL_1 + MC_2 + TACLR;
 
     P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3; //interrupt init Button und drehencoder
     P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
@@ -85,20 +85,21 @@ int main(void)
             matrix_init();      //Initialisierung der LED-Matrix
 
             matrix_on();
-
+            lcd_clear();
+            setalarmtone();
 
             while (!(button_flag & BIT0))
             {
 
                 wakeup();
-                lcd_clear();
                 timeCorrection();
                 matrix_update();
-
 
             }
             button_flag &= ~BIT0;
             matrix_clear();
+            TACTL = 0;
+            lcd_clear();
         }
 
         __low_power_mode_3();
@@ -178,20 +179,21 @@ __interrupt void TIMERA0_ISR()
     __low_power_mode_off_on_exit();
 }
 
-//#pragma vector=TIMERA1_VECTOR
-//__interrupt void TimerA1_ISR()
-//{
-//    switch (TAIV)
-//    {
-//    case 2:
-//        // CCR1 Interrupt
-//        break;
-//    case 4:
-//        // CCR2 Interrupt
-//        CCR2 += 37;
-//        break;
-//    case 10:
-//        // Timer Overflow
-//        break;
-//    }
-//}
+#pragma vector=TIMERA1_VECTOR
+__interrupt void TimerA1_ISR()
+{
+    switch (TAIV)
+    {
+    case 2:
+        // CCR1 Interrupt
+        break;
+    case 4:
+        // CCR2 Interrupt
+        CCR2 += 37;
+        break;
+    case 10:
+        // Timer Overflow
+        break;
+    }
+}
+

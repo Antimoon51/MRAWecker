@@ -198,21 +198,30 @@ void alarmmenu()
 
 void wakeup()
 {
-    int i;
+   int i;
     for (i = 0; i < 4; i++)
     {
         matrix_on();
         matrix_update();
     }
-    lcd_clear();
-    __delay_cycles(1000000);
+    __delay_cycles(100000);
+
     lcd_gotoxy(4, 0);
     lcd_write("ALARM!!!");
+
+
+
     for (i = 0; i < 4; i++)
     {
         matrix_clear();
         matrix_update();
     }
-    __delay_cycles(1000000);
+
+    __delay_cycles(100000);
+
 }
 
+void setalarmtone(){
+
+    TACTL = TASSEL_1 + MC_2 + TACLR;
+}
