@@ -198,26 +198,13 @@ void alarmmenu()
 
 void wakeup()
 {
-   int i;
-    for (i = 0; i < 4; i++)
-    {
-        matrix_on();
-        matrix_update();
-    }
     __delay_cycles(100000);
 
-    lcd_gotoxy(4, 0);
     lcd_write("ALARM!!!");
 
 
-
-    for (i = 0; i < 4; i++)
-    {
-        matrix_clear();
-        matrix_update();
-    }
-
     __delay_cycles(100000);
+    lcd_clear();
 
 }
 

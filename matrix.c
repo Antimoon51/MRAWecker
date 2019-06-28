@@ -3,6 +3,28 @@
 #include <stdint.h>
 
 #include "matrix.h"
+#include "setup.h"
+
+
+void array_input();
+
+int k;
+
+uint8_t zahlen[10][3] = { { 0b1111, 0b1001, 0b1111 },    //0
+        { 0b1010, 0b1111, 0b1000 },    //1
+        { 0b1001, 0b1101, 0b1011 },    //2
+        { 0b1001, 0b1011, 0b1110 },    //3
+        { 0b0111, 0b0100, 0b1110 },    //4
+        { 0b1011, 0b1011, 0b1101 },    //5
+        { 0b1111, 0b1011, 0b1101 },    //6
+        { 0b0001, 0b0101, 0b1111 },    //7
+        { 0b1111, 0b1011, 0b1111 },    //8
+        { 0b1011, 0b1011, 0b1111 }    //9
+
+};
+
+uint8_t output[25];
+
 
 static const uint8_t MCP_ADDRESS = 0x20;    //!> 7-bit Adresse des MCP23008
 static const uint8_t MCP_IODIR = 0x00; //!> Adresse des MCP23008-Registers IODIR
@@ -99,6 +121,55 @@ void matrix_on(){
 
 
 }
+
+
+void array_input()
+{
+    output[0] = 0b0000;
+    output[1] = 0b0000;
+    output[2] = 0b0000;
+    output[3] = 0b0000;
+    output[4] = zahlen[(time.hour - (time.hour % 10)) / 10][0];
+    output[5] = zahlen[(time.hour - (time.hour % 10)) / 10][1];
+    output[6] = zahlen[(time.hour - (time.hour % 10)) / 10][2];
+    output[7] = 0b0000;
+    output[8] = zahlen[time.hour % 10][0];
+    output[9] = zahlen[time.hour % 10][1];
+    output[10] = zahlen[time.hour % 10][2];
+    output[11] = 0b0000;
+    output[12] = 0b1010;
+    output[13] = 0b0000;
+    output[14] = zahlen[(time.min - (time.min % 10)) / 10][0];
+    output[15] = zahlen[(time.min - (time.min % 10)) / 10][1];
+    output[16] = zahlen[(time.min - (time.min % 10)) / 10][2];
+    output[17] = 0b0000;
+    output[18] = zahlen[time.min % 10][0];
+    output[19] = zahlen[time.min % 10][1];
+    output[20] = zahlen[time.min % 10][2];
+    output[21] = 0b0000;
+    output[22] = 0b0000;
+    output[23] = 0b0000;
+    output[24] = 0b0000;
+}
+
+void array_output()
+{
+
+    if (k > 24)
+    {
+        k = 0;
+    }
+
+    array_input();
+
+    matrix_write_row(3, output[k + 3]);
+    matrix_write_row(2, output[k + 2]);
+    matrix_write_row(1, output[k + 1]);
+    matrix_write_row(0, output[k]);
+    k++;
+
+}
+
 
 /**
  * I2C-Transmit-Interrupt

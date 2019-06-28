@@ -22,7 +22,7 @@ int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    time.sec = 30;          //init times
+    time.sec = 0;          //init times
     time.min = 0;
     time.hour = 0;
     time.day = 1;
@@ -36,14 +36,14 @@ int main(void)
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
 
-    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
-    P2DIR |= BIT4;
-    CCR2 = 37;
-    CCTL2 = CCIE + OUTMOD_4;
+//    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
+//    P2DIR |= BIT4;
+//    CCR2 = 37;
+//    CCTL2 = CCIE + OUTMOD_4;
 
     CCR0 = MATRIX_UPDATE_INTERVAL;    // Timer A mit regelmäßigen CCR0-Interrupt
     CCTL0 = CCIE;
-    //TACTL = TASSEL_1 + MC_2 + TACLR;
+    TACTL = TASSEL_1 + MC_2 + TACLR;
 
     P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3; //interrupt init Button und drehencoder
     P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
@@ -53,7 +53,9 @@ int main(void)
 
     lcd_init();  //Initialisiert das Display
 
-    startupscreen();
+    //startupscreen();
+
+    matrix_init();
 
     WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; //Intitialisierung des Watchdog Timers set for 1sec im continuos mode, reset to 0, selected ACLK as source
     IE1 |= WDTIE;           //WDT Interrupt enable
@@ -77,14 +79,16 @@ int main(void)
             lcd_gotoxy(5, 1);
             outputdate();
             outputday();
+            array_output();
+
         }
 
         if (time.hour == alarm.hour && time.min == alarm.min
                 && alarm.sec == time.sec && d == 1)
         {
-            matrix_init();      //Initialisierung der LED-Matrix
 
-            matrix_on();
+
+
             lcd_clear();
             setalarmtone();
 
@@ -93,11 +97,10 @@ int main(void)
 
                 wakeup();
                 timeCorrection();
-                matrix_update();
+
 
             }
             button_flag &= ~BIT0;
-            matrix_clear();
             TACTL = 0;
             lcd_clear();
         }
@@ -176,6 +179,7 @@ void PORT2_ISR()
 __interrupt void TIMERA0_ISR()
 {
     CCR0 += MATRIX_UPDATE_INTERVAL;
+    matrix_update();
     __low_power_mode_off_on_exit();
 }
 
