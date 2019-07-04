@@ -1,1 +1,2 @@
 # MRAWecker
+A project created by me and Moritz for university. The goal is to programm a working clock on the MSP430 education system by ti. Therefor it was necessary to use the LCD module on the board to show the time and make settings like setting alarms. Moreover we need to use the 4x4 LED-Matrix to display the time using a chaser light. Last but not least we need to implement the "ringing" by at least using two different tones.
