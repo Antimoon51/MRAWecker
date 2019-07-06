@@ -1,0 +1,250 @@
+\documentclass[openright,twoside,12pt,a4paper]{scrartcl}  
+%\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage[usenames]{color}
+\usepackage{color}
+%\usepackage{graphicx}
+%\usepackage{cancel}	%zum Kürzen in Formeln
+\usepackage{listings}	%Codehilighting
+\usepackage[utf8]{inputenc}	%Sonderzeichen nach utf8
+%\usepackage[dvipsname]{xcolor}	%Mehr Farben
+%\usepackage{tikz}	
+%\usepackage{empheq}	%Formelboxen
+%\usepackage{microtype}	
+\renewcommand{\rmdefault}{phv} % Arial
+\renewcommand{\sfdefault}{phv} % Arial
+\usepackage[paper=a4paper,left=35mm,right=25mm,top=30mm,bottom=25mm]{geometry}
+
+
+
+\begin{document}
+	\lstset{classoffset=0,
+		language=C++,
+		numbers=left,
+		numberstyle=\tiny,
+		inputencoding=utf8,
+		emph={time, uint8_t, uint16_t},emphstyle=\color{blue},
+		keywordstyle=\color{red},
+		stringstyle=\color{red},
+		commentstyle=\color{green},
+		morecomment=[l][\color{magenta}]{\#},
+		extendedchars=false,
+		tabsize=1,
+	}	
+
+\begin{titlepage}
+	\author{Moritz Nörenberg und Jacob Ueltzen}
+	\title{Dokumentation zum Weckerprojekt}
+	\date{}
+	\maketitle
+	\thispagestyle{empty}
+\end{titlepage}
+\newpage
+\thispagestyle{empty}
+\quad 
+\newpage
+\tableofcontents	\thispagestyle{empty}	\newpage	
+\setcounter{page}{1}	
+	
+	\begin{flushleft}
+		\section{Einführung}
+		Im folgenden soll unser Weckerprojekt beschrieben werden, welches auf dem MSP-Education System umgesetzt werden sollte. Dabei sind folgende Vorgaben zu beachten gewesen:\\
+		\begin{itemize}
+			\item[1:] Weckuhr mit Anzeige von Uhrzeit, Datum, Wochentag und Alarmzeit über das LCD
+			\item[2:] Eingabe und Justage von Uhrzeit, Alarmzeit und Datum
+			\item[3:] Akustischer Weckalarm aus unterschiedlichen Tönen
+			\item[3:] Nutzung der 4x4 LED Matrix zur Anzeige der Uhrzeit als Laufschrift (Stunden : Minuten)
+		\end{itemize}
+		Ich werde versuchen den Verlauf unserer Arbeit in dieser Dokumentation zu reproduzieren und die Funktionen und Module in der Reihenfolge zu erläutern, in welcher sie von uns implementiert wurden, um für den Betrachter verständlich zu machen, welchen Problemen wir bei unserer Arbeit begegnet sind und wie wir diese gelöst haben. Außerdem hoffe ich so eine bessere Verständlichkeit für unseren Quelltext vermitteln zu können. 
+		\section{Uhrzeitanzeige}
+		Begonnen haben wir zu aller erst damit, dass ir eine angezeigte Uhrzeit auf dem LCD des Education Systems angezeigt haben wollten. Dabei haben wir uns dafür entschieden folgendes struckt Element anzulegen:
+		\begin{lstlisting}
+			typedef struct
+			{
+			uint8_t sec;
+			uint8_t min;
+			uint8_t hour;
+			uint8_t day;
+			uint8_t mon;
+			uint16_t year;
+			} time_t;
+			
+			time_t time;
+		\end{lstlisting}
+		Dabei soll in den einzelnen Variablen jeweils der entsprechende Teil der Uhrzeit gespeichert werden. time.hour soll also nur den Wert der Stunde haben, um 21:10 Uhr also den Wert 21.\\
+		Als nächstes brauchten wir eine Funktion, die uns die in time gespeicherten Werte auf dem LCD anzeigen kann. Für das ansteuern des LCD liegt im zur Vorlesung Mikrorechnerarchitekturen gehörigen Repository von Robert Fromm eine Header- und die zugehörige Source-Datei, die lcd.h und lcd.c, welche wir zu unserem Projekt hinzugefügt haben. Damit erhielten wir nun Zugriff auf sämtliche dort deklarierten und definierten Funktionen. Darunter auch die Funktion \lstinline[language=C++]|lcd_put_char()|, welche in der Lage ist einzelne  character auf dem LCD darzustellen. Da unser struckt time nun aber keine character Variablen speichert brauchten wir zusätzlich noch ein Funktion, welche die gespeicherte Zeit so umrechnet, dass sie mit der gegeben Funktion auf dem LCD ausgegeben werden kann. 
+		\begin{lstlisting}
+void outputtime()
+{
+lcd_put_char((time.hour - (time.hour % 10)) / 10 + 48);
+lcd_put_char((time.hour % 10) + 48);
+lcd_write(":");
+lcd_put_char((time.min - (time.min % 10)) / 10 + 48);
+lcd_put_char((time.min % 10) + 48);
+lcd_write(":");
+lcd_put_char((time.sec - (time.sec % 10)) / 10 + 48);
+lcd_put_char((time.sec % 10) + 48);
+}
+		\end{lstlisting}
+		Dabei berechnet die erste Zeile der Funktion den Zehner der Stunde und gibt diesen aus, die zweite Zeile berechnet den Einer der Stunde und gibt diesen aus und die Dritte Zeile gibt einen Doppelpunkt als Trennzeichen aus. Die 48 am Ende jeder Zeile sorgt dafür, dass auch die richtigen Zeichen ausgegeben werden. 48 ist in ASCII eine 0, also wird auf jeden errechneten wert diese 48 addiert um das entsprechende Zeichen zum Wert auszugeben. Auf die selbe Art wird noch mit Minuten und Sekunden verfahren.\\
+		Ähnlich sind wir dann auch mit dem Datum verfahren, bis auf die Berechnung des Jahres, die mit dieser Methode recht umständlich und lang geworden wäre. Das Jahr haben wir daher in ein Array geschrieben, welches wir dann über die Funktion \lstinline[language=c++]|lcd_write()| ausgeben können, welche ebenfalls in der lcd.c definiert ist. \\
+		\begin{lstlisting}
+ 	char Jahr[5];
+	snprintf(Jahr, sizeof(Jahr), "%d", time.year);
+	lcd_write(Jahr);
+		\end{lstlisting}
+		Damit ist nun die Ausgabe von Uhrzeit und Datum möglich, auch wenn sich diese noch nicht aktualisiert und nur über den Quellcode vordefinierte Werte annehmen kann. (Vgl. main.c line 25-30)
+		\newpage
+		\section{Aktualisierung der Uhrzeit}
+		Für die sekündliche Aktualisierung der Uhrzeit war es nun nötig einen sekündlich auslösenden Interrupt zu bekommen. Dafür haben wir, wie in der Vorlesung gezeigt, den Watchdog-timer so initialisiert, dass er sekündlich einen Interrupt auslöst. 
+		\begin{lstlisting}
+	WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; 
+	IE1 |= WDTIE; 
+		\end{lstlisting}
+		Bei auslösen dieses Interrupt Vektors wird unser Strukturelement time.sec um eins nach oben gezählt und außerdem für spätere Anwendungen auch das BIT0 in die Variable second\_flag geschrieben. Diese heißt nicht so, weil es in einer Form die zweite ist, sondern weil sie sekündlich auslöst.
+		 \begin{lstlisting}
+	 #pragma vector=WDT_VECTOR  
+	 __interrupt
+	 void WDT_ISR()  
+	 {	//Interrupt Vektor: time.sec++
+	 time.sec++;
+	 second_flag = BIT0;
+	 __low_power_mode_off_on_exit();
+	 }
+		 \end{lstlisting}
+		 Damit kann nun die Sekundenanzeige im Sekundentakt nach oben zählen. Allerdings bisher nur ASCII Zeichen und selbst wenn man bei 0 anfangen lässt würde der Counter über die 10 hinaus zählen und die zugehörigen ASCII Zeichen auf dem LCD ausgeben. Dafür haben wir dann die Funktion \lstinline[language=c++]|time_correction| geschrieben. Hier nur ein Auszug daraus:
+		 \begin{lstlisting}
+	 void timeCorrection()    
+	 {	//overflow handling aller Zeiteinheiten
+	 if (time.sec > 59)
+	 {
+	 time.sec = 0;
+	 time.min++;
+	 
+	 if (time.min > 59)
+	 {
+	 time.min = 0;
+	 time.hour++;
+	 ...
+		 \end{lstlisting}
+		 Diese Funktion geht in ähnlicher Form durch alles Elemente der Struktur time. Bei den Monaten ist es dann etwas komplizierter da die Monate unterschiedlich viele Tage haben können. Außerdem befindet sich in dieser Funktion auch noch die Berechnung der Schaltjahre:\newpage
+		 \begin{lstlisting}
+	...
+	 else if (time.mon == 2)
+	 {
+		 if (time.year % 4 == 0 && time.year % 100 != 0
+	 		|| time.year % 400 == 0)
+	 	{
+	 		if (time.day > 29)
+	 		{
+				 time.mon++;
+				 time.day = 1;
+	 		}
+	 	}
+	 	else
+	 	{
+	 		if (time.day > 28)
+		 	{
+				 time.mon++;
+				 time.day = 1;
+		 	}
+	 	}
+	 }
+	 ...
+		 \end{lstlisting}
+		 Da es nun nur noch möglich ist existierende Daten und Uhrzeiten auszugeben und nicht Daten wie zum Beispiel den 30.Februar, der so nicht existieren kann, konnten wir uns nun as nächstes daran machen eine Berechnung für die Wochentage anzustellen. Dafür haben wir die von Gauß aufgestellte Formel zur Berechnung von Wochentagen zur Hilfe genommen, deren Gültigkeitsbereich zwischen dem 15.10.1582, dem Tag der Einführung des Gregorianischen Kalenders und dem Jahr 3000 liegt. \\Die Folgende Funktion berechnet die Lauf-variable \lstinline[language=c]!uint8_t weekdayi! , welche Werte zwischen 0 und 6 annehmen kann, die einen linearen Zusammenhang zum Wochentag haben. Ist weekdayi gleich 0, so ist der errechnete Wochentag Sonntag, bei einer eins ein Montag usw. Die Ausgabe davon haben wir über eine switch-case Anweisung realisiert. Davon aber hier gleich nur einen Auszug.\newpage
+		 \begin{lstlisting}
+ void weekdayinit() 
+ {//Berechnung von weekdayi mithilfe
+ uint8_t h; //der Gauss'schen Wochentagsformel
+ uint16_t k;
+ 
+ if (time.mon <= 2)
+ {
+	 h = time.mon + 12;
+	 k = time.year - 1;
+ }
+ else
+ {
+	 h = time.mon;
+	 k = time.year;
+ }
+ 
+ weekdayi = (time.day + 2 * h + (3 * h + 3) / 5 + k + k / 4 - k / 100
+ + k / 400 + 1) % 7;             //Wochentagsberechnung
+ 
+ }
+ 
+ 
+ void outputday() //Ausgabe des jeweiligen Wochentags
+ {
+	 lcd_gotoxy(0, 1);
+	 switch (weekdayi)
+	 {
+	 case 0:
+		 lcd_write("SUN,");
+		 break;
+	 case 1:
+		 lcd_write("MON,");
+		 break;
+	 case 2:
+		 lcd_write("TUE,");
+		 break;
+	 ...
+}
+		 \end{lstlisting}
+		 Damit ist unser Wecker nun in der Lage zu einem Datum den richtigen Wochentag anzuzeigen und dabei die Zeit zu zählen. Wenn also die Zeit die richtige ist wäre der Wecker fertig. Das einzige, was nun also noch Fehlt, um die Zeitfunktionen des Weckers zu vollenden ist die Möglichkeit, Uhrzeit und Datum am Wecker selbst einstellen zu können.
+		 \section{Initialisierung des Weckers}
+		 Wir haben zu beginn die einfachste Möglichkeit gewählt Uhrzeit und Datum des Weckers einzustellen, die uns einfiel. Diese beinhaltete jedoch keine Möglichkeit innerhalb des Einstellungsmenüs wieder einen Schritt zurück zu gehen. Hatte man zum Beispiel die Stunden bereits eingestellt und war weiter gegangen zu den Minuten, so gab es keine Möglichkeit wieder zu den Stunden zurückzukehren. Eigentlich haben wir dieses Problem zu einem anderen Zeitpunkt gelöst, da wir aber bei der Lösung diese Problems eine Menge Code verändert und gelöscht haben werde ich jetzt nur noch auf die letztendliche Lösung eingehen und einige Schritte in der Entstehung des Weckers auslassen.
+		 \subsection{Einstellung der Uhrzeit}
+	 	Für die Einstellung der Uhrzeit haben wir eine Funktion geschrieben, welche die momentan ausgegebene Uhrzeit verändern kann. Dafür wird eine Zählvariable eingeführt, die vom Drehencoder hoch oder runter gezählt werden kann. Also mussten wir zu aller erst den Drehencoder interruptfähig machen und eine hoch- und runterzähl Unterscheidung beifügen. Da wir das Grundprinzip für diese Funktionalität aber aus Robert Fromms GitHub Beispiel entnommen haben werde ich hier nicht tiefer darauf eingehen. Mithilfe des Drehencoder ist es uns nun aber möglich, dass wir über kurze if-schleifen eine Überlaufabfrage machen um keine unerlaubten Zahlen zu erreichen oder auch keine anderen ASCII Zeichen über das LCD Ausgegeben werden können. Hier ein Beispiel:
+	 	\begin{lstlisting}
+if (time.hour == 20)//Zehner der Stunden = 20
+	{//Also noch max. 3 moeglich, da 24 nicht erlaubt ist
+		if (a > 51)//51 in ASCII entsprich 3
+		{
+			a = 48;//48 entspricht 0
+		}
+		if (a < 48)
+		{
+			a = 51;
+		}
+	}
+	else//Zehner der Stunden nicht 20
+	{//Voller Zahlenumfang erlaubt
+		if (a > 57)//entspricht 9
+		{
+			a = 48;
+		}
+		if (a < 48)
+		{
+			a = 57;
+		}
+	}
+	 	\end{lstlisting}
+	 	Dabei wird unsere Zählvariable a dauerhaft auf dem LCD ausgegeben, damit der Benutzer des Weckers auch sehen kann, was er einstellt. Ist der Nutzer Fertig mit dem einstellen eines Digits und drück den weiter oder zurück Button, dann wird der aktuelle Wert von a als dezimal Ziffer umgerechnet im zugehörigen Struckt-Element gespeichert. Daraufhin wird a wieder zu 0 gesetzt und der Cursor je nach Eingabe des Nutzers um eine Stelle nach vorn oder nach hinten verschoben.
+	 	\begin{lstlisting}
+if (button_flag & BIT0)           // Weiter-Button
+{
+	button_flag &= ~BIT0;
+	time.hour = time.hour + (a - 48);
+	a = 48;
+	setupTimeState = setupTimeStateTenMin;
+}
+if (button_flag & BIT1)           // Zurueck-Button
+{
+	button_flag &= ~BIT1;
+	time.hour = time.hour + (a - 48);
+	a = 48;
+	setupTimeState = setupTimeStateTenHour;
+}
+	 	\end{lstlisting}
+	 	Dies ganze wird für jedes einzustellende Digit wiederholt und alles zusammen steht in einer switch-case Anweisung, die zwischen den verschiedenen Zuständen von setupTimeState unterscheidet und somit die Navigation innerhalb des Menüs ermöglicht. \\
+	 	\subsection{Einstellung des Datums}
+	 	Bei der Einstellung des Datums sind wir auf die Selbe Weise Vorgegangen wie bisher bei der Uhrzeit. Da wir uns bei der Einstellung des Datums in einem anderen Menüpunkt befinden und dieser auch unabhängig von der Uhrzeiteinstellung sein soll haben wir dies alles in eine weiter Funktion geschrieben. Diese heißt \lstinline[language=c++,]|void setupdate()| und macht im Grunde das selbe wie die eben beschriebene Funktion, ist aber länger. Trotzdem werde ich hier nicht näher darauf eingehen, da dies nicht zu weiterem Verständnis der Funktionalität und dem Aufbau des Programmes beitragen würde.
+	 	\subsection{Neustart des Weckers}
+	 	Bei Neustart des Weckers, ob über den auf dem Education System verbauten Reset Button oder durch trennen der Stromverbindung, wird über eine Funktion Namens \lstinline[language=c++]|void startupscree()|, die nur einmalig bei Neustart des Programms ausgeführt wird, die Initialisierung durchlaufen. Das bedeutet, dass der Benutzer auf dem LCD dazu aufgefordert wird die aktuelle Uhrzeit einzugeben und darauf hin die im Kapitel 4.1 beschriebene Funktion aufgerufen wird. 
+	\end{flushleft}
+\end{document}
