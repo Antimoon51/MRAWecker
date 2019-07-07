@@ -1,15 +1,16 @@
-\documentclass[openright,twoside,12pt,a4paper]{scrartcl}  
-%\usepackage[T1]{fontenc}
+\documentclass[openright,twoside,11pt,a4paper]{scrartcl}  
+\usepackage[T1]{fontenc}	%Tilde
+\usepackage{courier}	%Tilde
 \usepackage[ngerman]{babel}
 %\usepackage{amsmath}
 %\usepackage{amssymb}
-%\usepackage[usenames]{color}
-\usepackage{color}
-%\usepackage{graphicx}
+%\usepackage[usenames]{color}	%Mehr Farben
+\usepackage{color}		%Farben
+%\usepackage{graphicx}	%Bilder
 %\usepackage{cancel}	%zum Kürzen in Formeln
 \usepackage{listings}	%Codehilighting
 \usepackage[utf8]{inputenc}	%Sonderzeichen nach utf8
-%\usepackage[dvipsname]{xcolor}	%Mehr Farben
+%\usepackage[dvipsname]{xcolor}	%Alle Farben
 %\usepackage{tikz}	
 %\usepackage{empheq}	%Formelboxen
 %\usepackage{microtype}	
@@ -25,13 +26,13 @@
 		numbers=left,
 		numberstyle=\tiny,
 		inputencoding=utf8,
-		emph={time, uint8_t, uint16_t},emphstyle=\color{blue},
+		emph={time, alarm, uint8_t, uint16_t},emphstyle=\color{blue},
 		keywordstyle=\color{red},
 		stringstyle=\color{red},
 		commentstyle=\color{green},
 		morecomment=[l][\color{magenta}]{\#},
 		extendedchars=false,
-		tabsize=1,
+		tabsize=2,
 	}	
 
 \begin{titlepage}
@@ -96,14 +97,14 @@ lcd_put_char((time.sec % 10) + 48);
 	lcd_write(Jahr);
 		\end{lstlisting}
 		Damit ist nun die Ausgabe von Uhrzeit und Datum möglich, auch wenn sich diese noch nicht aktualisiert und nur über den Quellcode vordefinierte Werte annehmen kann. (Vgl. main.c line 25-30)
-		\newpage
+		
 		\section{Aktualisierung der Uhrzeit}
 		Für die sekündliche Aktualisierung der Uhrzeit war es nun nötig einen sekündlich auslösenden Interrupt zu bekommen. Dafür haben wir, wie in der Vorlesung gezeigt, den Watchdog-timer so initialisiert, dass er sekündlich einen Interrupt auslöst. 
 		\begin{lstlisting}
 	WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; 
 	IE1 |= WDTIE; 
 		\end{lstlisting}
-		Bei auslösen dieses Interrupt Vektors wird unser Strukturelement time.sec um eins nach oben gezählt und außerdem für spätere Anwendungen auch das BIT0 in die Variable second\_flag geschrieben. Diese heißt nicht so, weil es in einer Form die zweite ist, sondern weil sie sekündlich auslöst.
+		Bei auslösen dieses Interrupt Vektors wird unser Strukturelement time.sec um eins nach oben gezählt und außerdem für spätere Anwendungen auch das BIT0 in die Variable second\_flag geschrieben. Diese heißt nicht so, weil es in einer Form die zweite ist, sondern weil sie sekündlich auslöst.\newpage
 		 \begin{lstlisting}
 	 #pragma vector=WDT_VECTOR  
 	 __interrupt
@@ -195,7 +196,7 @@ lcd_put_char((time.sec % 10) + 48);
 	 ...
 }
 		 \end{lstlisting}
-		 Damit ist unser Wecker nun in der Lage zu einem Datum den richtigen Wochentag anzuzeigen und dabei die Zeit zu zählen. Wenn also die Zeit die richtige ist wäre der Wecker fertig. Das einzige, was nun also noch Fehlt, um die Zeitfunktionen des Weckers zu vollenden ist die Möglichkeit, Uhrzeit und Datum am Wecker selbst einstellen zu können.
+		 Damit ist unser Wecker nun in der Lage zu einem Datum den richtigen Wochentag anzuzeigen und dabei die Zeit zu zählen. Wenn also die Zeit die richtige ist wäre der Wecker fertig. Das einzige, was nun also noch Fehlt, um die Zeitfunktionen des Weckers zu vollenden ist die Möglichkeit, Uhrzeit und Datum am Wecker selbst einstellen zu können.	\newpage	 
 		 \section{Initialisierung des Weckers}
 		 Wir haben zu beginn die einfachste Möglichkeit gewählt Uhrzeit und Datum des Weckers einzustellen, die uns einfiel. Diese beinhaltete jedoch keine Möglichkeit innerhalb des Einstellungsmenüs wieder einen Schritt zurück zu gehen. Hatte man zum Beispiel die Stunden bereits eingestellt und war weiter gegangen zu den Minuten, so gab es keine Möglichkeit wieder zu den Stunden zurückzukehren. Eigentlich haben wir dieses Problem zu einem anderen Zeitpunkt gelöst, da wir aber bei der Lösung diese Problems eine Menge Code verändert und gelöscht haben werde ich jetzt nur noch auf die letztendliche Lösung eingehen und einige Schritte in der Entstehung des Weckers auslassen.
 		 \subsection{Einstellung der Uhrzeit}
@@ -245,11 +246,38 @@ if (button_flag & BIT1)           // Zurueck-Button
 	 	\subsection{Einstellung des Datums}
 	 	Bei der Einstellung des Datums sind wir auf die Selbe Weise Vorgegangen wie bisher bei der Uhrzeit. Da wir uns bei der Einstellung des Datums in einem anderen Menüpunkt befinden und dieser auch unabhängig von der Uhrzeiteinstellung sein soll haben wir dies alles in eine weiter Funktion geschrieben. Diese heißt \lstinline[language=c++,]|void setupdate()| und macht im Grunde das selbe wie die eben beschriebene Funktion, ist aber länger. Trotzdem werde ich hier nicht näher darauf eingehen, da dies nicht zu weiterem Verständnis der Funktionalität und dem Aufbau des Programmes beitragen würde.
 	 	\subsection{(Neu)start des Weckers}
-	 	Bei erstmaligen starten des Programms oder bei Neustart des Weckers, ob über den auf dem Education System verbauten Reset Button oder durch trennen der Stromverbindung, wird über eine Funktion Namens \lstinline[language=c++]|void startupscreen()|, die nur einmalig bei Neustart des Programms ausgeführt wird, die Initialisierung durchlaufen. Das bedeutet, dass der Benutzer auf dem LCD dazu aufgefordert wird die aktuelle Uhrzeit einzugeben und darauf hin die im Kapitel 4.1 beschriebene Funktion aufgerufen wird. Nachdem der Benutzer dann die Zeit eingegeben hat kann er durch bestätigen zur Einstellung des Datums kommen. Hierfür wird die im Kapitel 4.2 beschriebene Funktion aufgerufen. Wenn die Einstellung der Uhrzeit abgeschlossen ist und der Nutzer dies bestätigt wird noch die Funktion zur Wochentagsberechnung ausgeführt und auf dem LCD erscheinen dann die Worten \"Initialisierung abgeschlossen". Damit ist der Wecker vollständig initialisiert und wechselt automatisch in den Uhrzeit Bildschirm und beginnt damit die Uhrzeit zu zählen und anzuzeigen. \\
+	 	Bei erstmaligen starten des Programms oder bei Neustart des Weckers, ob über den auf dem Education System verbauten Reset Button oder durch trennen der Stromverbindung, wird über eine Funktion Namens \lstinline[language=c++]|void startupscreen()|, die nur einmalig bei Neustart des Programms ausgeführt wird, die Initialisierung durchlaufen. Das bedeutet, dass der Benutzer auf dem LCD dazu aufgefordert wird die aktuelle Uhrzeit einzugeben und darauf hin die im Kapitel 4.1 beschriebene Funktion aufgerufen wird. Nachdem der Benutzer dann die Zeit eingegeben hat kann er durch bestätigen zur Einstellung des Datums kommen. Hierfür wird die im Kapitel 4.2 beschriebene Funktion aufgerufen. Wenn die Einstellung der Uhrzeit abgeschlossen ist und der Nutzer dies bestätigt wird noch die Funktion zur Wochentagsberechnung ausgeführt und auf dem LCD erscheinen dann die Worten $"$Initialisierung abgeschlossen$"$. Damit ist der Wecker vollständig initialisiert und wechselt automatisch in den Uhrzeit Bildschirm und beginnt damit die Uhrzeit zu zählen und anzuzeigen. \\
 	 	Da die gerade beschriebene Funktion \lstinline[language=c++]|void startupscreen()|, nur aus aufrufen bereits bekannter Funktionen besteht werde ich hier kein Codebeispiel dazu zeigen. \\
 	 	\section{Alarm}
-	 	Da nun die Grundfunktionen eines Weckers gegeben sind war es an der Zeit sich um zusätzliche Funktionen zu kümmern. Der dabei von uns zuerst bearbeitete Punkt war die Weckfunktion. Dafür ist es vor allem nötig gewesen dem Benutzer eine Möglichkeit zu geben eine Weckzeit einstellen zu können. Dafür brauchten wir nun nur einen weiteren Menüpunkt und konnten dann wieder das Grundprinzip der vorangehend erläuterten Funktion zur Zeiteinstellung nutzen. Da diese Vorgehensweisen aber bereits bekannt sind werde ich nicht weiter darauf eingehen. Zusätzlich haben wir uns auch ein weiteres struckt Element angelegt, welches die Uhrzeitvariablen des bereits vorhandenen enthält und eine weitere Variable namens enable. Da unser Vorgehen mit dem struct Element ähnlich dem vorherigen ist werde ich auch hier wieder nicht darauf eingehen.\\
-	 	Weiterhin war es jedoch auch nötig den Weckalarm zum richtigen Zeitpunkt auszulösen.  
+	 	Da nun die Grundfunktionen eines Weckers gegeben sind war es an der Zeit sich um zusätzliche Funktionen zu kümmern. Der dabei von uns zuerst bearbeitete Punkt war die Weckfunktion. \\
+	 	Da wir hier vieles Gleichzeitig und auch teilweise Dinge nicht so benutzt haben, wie wir sie uhrspr"unglich geschrieben haben werde ich für diesen Teil davon Abweichen den Code chronologisch zu erläutern, sondern hier die einzelnen Funktionalitäten der Weckfunktion erklären. 
+	 	\subsection{Einstellen der Alarmzeit}
+		 Für das einstellen der Weckzeit brauchten wir nun lediglich einen weiteren Menüpunkt und konnten dann wieder das Grundprinzip der vorangehend erläuterten Funktion zur Zeiteinstellung nutzen. Da diese Vorgehensweisen aber bereits bekannt sind werde ich nicht weiter darauf eingehen.\\
+		 Zusätzlich haben wir uns auch ein weiteres struckt Element angelegt, welches wieder die Uhrzeitvariablen enthält und eine weitere Variable namens enable. Dieses Struckt kommt mit der Variable alarm und alarmold. Den Grund dafür werde ich später erläutern. \\
+		 Da unser Vorgehen mit dem struct Element ähnlich dem vorherigen ist werde ich auch hier wieder nicht darauf eingehen.\\
+	 	Weiterhin war es jedoch auch nötig dem Nutzer die Möglichkeit zu geben sich nicht wecken zu lassen. Dafür haben wir die Variable enable eingeführt, die grundsätzlich nur zwei Zustände haben kann. 1 zum einschalten des Weckers, was auf dem LCD als $"$EIN$"$ ausgegeben wird und 0, um die Weckfunktion auszuschalten, was auf dem Display des Weckers als $"$AUS$"$ angezeigt wird. Der Zustand von enable wird vom Nutzer auf die selbe Art eingestellt, wie die Einstellung der Weckzeit vorher. \\
+	 	\ \\
+	 	Um nun aber auch einen Weckvorgang zu bekommen brauchten wir noch etwas, dass die Aktuelle Zeit mit den in \lstinline[language=c++]|alarm| gespeicherten und vom Nutzer eingegebenen Werten vergleicht. Dafür haben wir folgende if-Anweisung so in unser Hauptprogramm geschrieben, dass sie dauerhaft wieder aufgerufen wird.
+	 	\begin{lstlisting}
+	 	 if (time.hour == alarm.hour && time.min == alarm.min
+	 	&& alarm.sec == time.sec && alarm.enable == 1)
+	 	{//Rest der Klammer einf"ugen, wenn fertig
+	 	\end{lstlisting}
+	 	Diese Schleife vergleicht alle einzelnen Elemente der Zeit mit denen, die im Alarm eingestellt worden sind. Dabei w"aren die Sekunden eigentlich gar nicht von n"oten gewesen, da die Weckzeit nur auf volle Minuten gestellt werden kann. Dennoch vergleichen wir diese mit, da wir somit das Problem umgehen k"onnen, dass der Wecker eine ganze Minute lang durch klingeln w"urde, ohne das der Nutzer in der Lage w"are das Wecken zu unterbrechen. Der Wert von \lstinline[language=c++]|alarm.sec|kann nicht vom Nutzer ge"andert werden und ist 0 by default. Somit l"ost der Alarm nur zur vollen Minute der eingestellten Weckzeit aus und der Kopf der if-Schleife ist auch nur diese eine Sekunde lang wahr. W"urde der Nutzer versuchen innerhalb dieser Sekunde den Alarm wieder abzustellen k"onnte es zu Fehlern kommen und der Abstellknopf m"usste ein weiteres Mal gedr"uckt werden.
+	 	\subsection{Abstellen des Alarms}
+	 	Zum Abstellen des Alarms bedarf es eines einzelnen Knopfdruckes. Dafür haben wir die Funktionen, welche während des Weckens ausgeführt werden sollen in eine while-Schleife geschrieben, deren Abbruchbedingung Das dr"ucken eines der auf dem Education System verbauten Taster. 
+	 	\begin{lstlisting}
+	 	 while (!(button_flag & BIT0))
+	 	{
+	 		wakeup();
+	 		timeCorrection();
+	 	}
+	 	button_flag &= ~BIT0;
+	 	\end{lstlisting}
+	 	Die Funktion \lstinline[language=c==++]|timeCorrection()| muss dabei mit in der Schleife ausgef"uhrt werde, da der Wecker selbst sonst im Hintergrund nicht weiter z"ahlen w"urde. Die Funktion \lstinline[language=c++]|wakeup()| diente dabei zuerst nur als Platzhalter f"ur alles, was beim Wecken ausgef"uhrt werden soll. Das eigentliche "klingeln" des Weckers haben wir erst danach programmiert. \\
+	 	Wichtig hier anzumerken ist, dass das Argument im Kopf der Schleife negiert ist, dadurch also erreicht wird, dass das Statement solange wahr bleibt, also auch solange ausgef"uhrt wird, bis der entsprechende Knopf gedr"uckt wird. In diesem Fall ist es der Knopf ganz rechts auf dem Board. \\
+	 	\subsection{Klingeln des Weckers"}
+	 	Um den Wecker klingeln zu lassen haben wir die bereits erw"ahnte Funktion \lstinline[language=c++]|wakeup()| geschrieben. Da diese, wie bereits gezeigt, nur w"ahrend der Wecker klingelt aufgerufen werden kann, konnten wir hier einfach alles reinschreiben, was w"ahrend des Weckvorganges passieren soll.
 
 	\end{flushleft}
 \end{document}
