@@ -15,5 +15,8 @@ void lcd_write(const char *str);
 void lcd_clear();
 void lcd_cursor_on();
 void lcd_cursor_off();
+void lcd_clear_line_1();
+void lcd_clear_line_2();
+
 
 #endif /* LCD_H_ */
