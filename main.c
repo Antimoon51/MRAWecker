@@ -17,6 +17,7 @@
 uint8_t clock = 0;
 uint8_t clock_flag = 0;
 
+uint8_t toneccr = 37;
 /*-----------------------------------------------------------------*/
 //ANFANG HAUPTPROGRAMM
 /*-----------------------------------------------------------------*/
@@ -41,7 +42,7 @@ int main(void)
 
     P2SEL &= ~BIT4;                              //Konfiguratio für Tonausgabe
     P2DIR &= ~BIT4;
-    CCR2 = 37;
+    CCR2 = toneccr;
     CCTL2 = CCIE + OUTMOD_4;
 
     CCR0 = MATRIX_UPDATE_INTERVAL;    // Timer A mit regelmäßigen CCR0-Interrupt
@@ -172,11 +173,11 @@ int main(void)
             menuState = menuState_TIME;
             break;
 
-            case menuState_WAKEUP:
+        case menuState_WAKEUP:
             lcd_clear();
             matrix_clear();
             setalarmtone();
-            lcd_gotoxy(4,0);
+            lcd_gotoxy(4, 0);
             lcd_write("ALARM!");
             timeCorrection();
 
@@ -285,7 +286,23 @@ __interrupt void TimerA1_ISR()
         break;
     case 4:
         // CCR2 Interrupt
-        CCR2 += 37;
+        CCR2 += toneccr;
+        if (clock == 0)
+        {
+            toneccr = 30;
+        }
+        else if (clock == 1)
+        {
+            toneccr = 37;
+        }
+        else if (clock == 2)
+        {
+            toneccr = 52;
+        }
+        else if (clock == 3)
+        {
+            toneccr = 74;
+        }
         break;
     case 10:
         // Timer Overflow
