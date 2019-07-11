@@ -62,7 +62,7 @@
 		\end{itemize}
 		Ich werde versuchen den Verlauf unserer Arbeit in dieser Dokumentation zu reproduzieren und die Funktionen und Module in der Reihenfolge zu erläutern, in welcher sie von uns implementiert wurden, um für den Betrachter verständlich zu machen, welchen Problemen wir bei unserer Arbeit begegnet sind und wie wir diese gelöst haben. Außerdem hoffe ich so eine bessere Verständlichkeit für unseren Quelltext vermitteln zu können. 
 		\section{Uhrzeitanzeige}
-		Begonnen haben wir zu aller erst damit, dass ir eine angezeigte Uhrzeit auf dem LCD des Education Systems angezeigt haben wollten. Dabei haben wir uns dafür entschieden folgendes struckt Element anzulegen:
+		Begonnen haben wir zunächst damit, dass wir eine angezeigte Uhrzeit auf dem LCD des Education Systems anzeigen wollten. Dabei haben wir uns dafür entschieden folgenden 				Variablentyp neu anzulegen:
 		\begin{lstlisting}
 			typedef struct
 			{
@@ -76,8 +76,8 @@
 			
 			time_t time;
 		\end{lstlisting}
-		Dabei soll in den einzelnen Variablen jeweils der entsprechende Teil der Uhrzeit gespeichert werden. time.hour soll also nur den Wert der Stunde haben, um 21:10 Uhr also den Wert 21.\\
-		Als nächstes brauchten wir eine Funktion, die uns die in time gespeicherten Werte auf dem LCD anzeigen kann. Für das ansteuern des LCD liegt im zur Vorlesung Mikrorechnerarchitekturen gehörigen Repository von Robert Fromm eine Header- und die zugehörige Source-Datei, die lcd.h und lcd.c, welche wir zu unserem Projekt hinzugefügt haben. Damit erhielten wir nun Zugriff auf sämtliche dort deklarierten und definierten Funktionen. Darunter auch die Funktion \lstinline[language=C++]|lcd_put_char()|, welche in der Lage ist einzelne  character auf dem LCD darzustellen. Da unser struckt time nun aber keine character Variablen speichert brauchten wir zusätzlich noch ein Funktion, welche die gespeicherte Zeit so umrechnet, dass sie mit der gegeben Funktion auf dem LCD ausgegeben werden kann. 
+		Dabei soll in den einzelnen Elementen jeweils der entsprechende Teil der Uhrzeit gespeichert werden. time.hour soll also nur den Wert der Stunde haben, um 21:10 Uhr also den 				Wert 21.\\
+		Als nächstes brauchten wir eine Funktion, die uns die in time gespeicherten Werte auf dem LCD anzeigen kann. Für das ansteuern des LCD liegt im zur Vorlesung Mikrorechnerarchitekturen gehörigen Repository von Robert Fromm eine Header- und die zugehörige Source-Datei, die lcd.h und lcd.c, welche wir zu unserem Projekt hinzugefügt haben. Damit erhielten wir nun Zugriff auf sämtliche dort deklarierten und definierten Funktionen. Darunter auch die Funktion \lstinline[language=C++]|lcd_put_char()|, welche in der Lage ist einzelne  character auf dem LCD darzustellen. Da unsere Variable time nun aber keine character Variablen speichert brauchten wir zusätzlich noch eine Funktion, welche die gespeicherte Zeit so umrechnet, dass sie mit der gegeben Funktion auf dem LCD ausgegeben werden kann. 
 		\begin{lstlisting}
 void outputtime()
 {
@@ -101,23 +101,24 @@ lcd_put_char((time.sec % 10) + 48);
 		Damit ist nun die Ausgabe von Uhrzeit und Datum möglich, auch wenn sich diese noch nicht aktualisiert und nur über den Quellcode vordefinierte Werte annehmen kann. (Vgl. main.c line 29-34)
 		
 		\section{Aktualisierung der Uhrzeit}
-		Für die sekündliche Aktualisierung der Uhrzeit war es nun nötig einen sekündlich auslösenden Interrupt zu bekommen. Dafür haben wir, wie in der Vorlesung gezeigt, den Watchdog-timer so initialisiert, dass er sekündlich einen Interrupt auslöst. 
+		Für die sekündliche Aktualisierung der Uhrzeit war es nun nötig einen sekündlich auslösenden Interrupt zu generieren. Dafür haben wir den Watchdog-timer so initialisiert, dass er viertelsekündlich einen Interrupt auslöst. 
 		\begin{lstlisting}
 	WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; 
 	IE1 |= WDTIE; 
 		\end{lstlisting}
-		Bei auslösen dieses Interrupt Vektors wird unser Strukturelement time.sec um eins nach oben gezählt und außerdem für spätere Anwendungen auch das \lstinline[language=C++]|BIT0| in die Variable \lstinline[language=c++]|second_flag| geschrieben. Diese heißt nicht so, weil es in einer Form die zweite ist, sondern weil sie sekündlich auslöst.\newpage
+		Bei jedem Auslösen des Interrupts wird unser Variablenelement time.sec um eins nach oben gezählt und außerdem für spätere Anwendungen auch das \lstinline[language=C++]|BIT0| in die Variable \lstinline[language=c++]|second_flag| geschrieben. Diese heißt nicht so, weil es in einer Form die zweite ist, sondern weil sie sekündlich auslöst. \newpage
 		 \begin{lstlisting}
-	 #pragma vector=WDT_VECTOR  
-	 __interrupt
-	 void WDT_ISR()  
-	 {	//Interrupt Vektor: time.sec++
-	 time.sec++;
-	 second_flag = BIT0;
-	 __low_power_mode_off_on_exit();
-	 }
+	 	#pragma vector=WDT_VECTOR       //Interrupt Vektor, der die Struktur time.sec sekündlich um 1 erhöht.
+		__interrupt
+		void WDT_ISR()
+		{
+       			time.sec++;
+       			second_flag = BIT0;
+
+  		 __low_power_mode_off_on_exit();
+		}
 		 \end{lstlisting}
-		 Damit kann nun die Sekundenanzeige im Sekundentakt nach oben zählen. Allerdings bisher nur ASCII Zeichen und selbst wenn man bei 0 anfangen lässt würde der Counter über die 10 hinaus zählen und die zugehörigen ASCII Zeichen auf dem LCD ausgeben. Dafür haben wir dann die Funktion \lstinline[language=c++]|time_correction| geschrieben. Hier nur ein Auszug daraus:
+		 Damit kann nun die Sekundenanzeige im Sekundentakt nach oben zählen. Allerdings bisher nur ASCII Zeichen und selbst wenn man bei 0 anfangen lässt würde der Counter über die 10 hinaus zählen und die zugehörigen ASCII Zeichen auf dem LCD ausgeben. Dafür haben wir dann die Funktion \lstinline[language=c++]|timeCorrection| geschrieben. Hier nur ein Auszug daraus:
 		 \begin{lstlisting}
 	 void timeCorrection()    
 	 {	//overflow handling aller Zeiteinheiten
@@ -131,8 +132,9 @@ lcd_put_char((time.sec % 10) + 48);
 	 time.min = 0;
 	 time.hour++;
 	 ...
+	 }
 		 \end{lstlisting}
-		 Diese Funktion geht in ähnlicher Form durch alles Elemente der Struktur time. Bei den Monaten ist es dann etwas komplizierter da die Monate unterschiedlich viele Tage haben können. Außerdem befindet sich in dieser Funktion auch noch die Berechnung der Schaltjahre:\newpage
+		 Diese Funktion geht in ähnlicher Form durch alle Elemente der Variable time. Bei den Monaten ist es dann etwas komplizierter da die Monate unterschiedlich viele Tage haben können. Außerdem befindet sich in dieser Funktion auch noch die Berechnung der Schaltjahre:\newpage
 		 \begin{lstlisting}
 	...
 	 else if (time.mon == 2)
@@ -157,7 +159,7 @@ lcd_put_char((time.sec % 10) + 48);
 	 }
 	 ...
 		 \end{lstlisting}
-		 Da es nun nur noch möglich ist existierende Daten und Uhrzeiten auszugeben und nicht Daten wie zum Beispiel den 30.Februar, der so nicht existieren kann, konnten wir uns nun as nächstes daran machen eine Berechnung für die Wochentage anzustellen. Dafür haben wir die von Gauß aufgestellte Formel zur Berechnung von Wochentagen zur Hilfe genommen, deren Gültigkeitsbereich zwischen dem 15.10.1582, dem Tag der Einführung des Gregorianischen Kalenders und dem Jahr 3000 liegt. \\Die Folgende Funktion berechnet die Lauf-variable \lstinline[language=c]!uint8_t weekdayi! , welche Werte zwischen 0 und 6 annehmen kann, die einen linearen Zusammenhang zum Wochentag haben. Ist \lstinline[language=c++]|weekdayi| gleich 0, so ist der errechnete Wochentag Sonntag, bei einer eins ein Montag usw. Die Ausgabe davon haben wir über eine switch-case Anweisung realisiert. Davon aber hier gleich nur einen Auszug.\newpage
+		 Da es nun nur noch möglich ist existierende Daten und Uhrzeiten auszugeben und nicht Daten wie zum Beispiel den 30.Februar, konnten wir uns nun als Nächstes daran machen eine Berechnung für die Wochentage anzustellen. Dafür haben wir die von Gauß aufgestellte Formel zur Berechnung von Wochentagen zur Hilfe genommen, deren Gültigkeitsbereich zwischen dem 15.10.1582, dem Tag der Einführung des Gregorianischen Kalenders und dem Jahr 3000 liegt. \\Die Folgende Funktion berechnet die Laufvariable \lstinline[language=c]!uint8_t weekdayi! , welche Werte zwischen 0 und 6 annehmen kann, die einen linearen Zusammenhang zum Wochentag haben. Ist \lstinline[language=c++]|weekdayi| gleich 0, so ist der errechnete Wochentag Sonntag, bei einer Eins ein Montag usw. Die Ausgabe der Wochentage haben wir über eine switch-case Anweisung realisiert. Davon aber hier ebenfalls nur einen Auszug.\newpage
 		 \begin{lstlisting}
  void weekdayinit() 
  {//Berechnung von weekdayi mithilfe
@@ -198,11 +200,11 @@ lcd_put_char((time.sec % 10) + 48);
 	 ...
 }
 		 \end{lstlisting}
-		 Damit ist unser Wecker nun in der Lage zu einem Datum den richtigen Wochentag anzuzeigen und dabei die Zeit zu zählen. Wenn also die Zeit die richtige ist wäre der Wecker fertig. Das einzige, was nun also noch Fehlt, um die Zeitfunktionen des Weckers zu vollenden ist die Möglichkeit, Uhrzeit und Datum am Wecker selbst einstellen zu können.	\newpage	 
+		 Damit ist unser Wecker nun in der Lage zu einem Datum den richtigen Wochentag anzuzeigen und dabei die Zeit zu zählen. Wenn also die Zeit die richtige ist, wäre der Wecker fertig. Das einzige, was nun also noch fehlt, um die Zeitfunktionen des Weckers zu vollenden ist die Möglichkeit, Uhrzeit und Datum am Wecker selbst einstellen zu können.	\newpage	 
 		 \section{Initialisierung des Weckers}
-		 Wir haben zu beginn die einfachste Möglichkeit gewählt Uhrzeit und Datum des Weckers einzustellen, die uns einfiel. Diese beinhaltete jedoch keine Möglichkeit innerhalb des Einstellungsmenüs wieder einen Schritt zurück zu gehen. Hatte man zum Beispiel die Stunden bereits eingestellt und war weiter gegangen zu den Minuten, so gab es keine Möglichkeit wieder zu den Stunden zurückzukehren. Eigentlich haben wir dieses Problem zu einem anderen Zeitpunkt gelöst, da wir aber bei der Lösung diese Problems eine Menge Code verändert und gelöscht haben werde ich jetzt nur noch auf die letztendliche Lösung eingehen und einige Schritte in der Entstehung des Weckers auslassen.
+		 Wir haben zu Beginn die einfachste Möglichkeit gewählt Uhrzeit und Datum des Weckers einzustellen, die uns einfiel. Diese beinhaltete jedoch keine Möglichkeit innerhalb des Einstellungsmenüs wieder einen Schritt zurück zu gehen. Hatte man zum Beispiel die Stunden bereits eingestellt und war weiter gegangen zu den Minuten, so gab es keine Möglichkeit wieder zu den Stunden zurückzukehren. Eigentlich haben wir dieses Problem zu einem anderen Zeitpunkt gelöst, da wir aber bei der Lösung diese Problems eine Menge Code verändert und gelöscht haben werde ich jetzt nur noch auf die letztendliche Lösung eingehen und einige Schritte in der Entstehung des Weckers auslassen.
 		 \subsection{Einstellung der Uhrzeit}
-	 	Für die Einstellung der Uhrzeit haben wir eine Funktion geschrieben, welche die momentan ausgegebene Uhrzeit verändern kann. Dafür wird eine Zählvariable eingeführt, die vom Drehencoder hoch oder runter gezählt werden kann. Also mussten wir zu aller erst den Drehencoder interruptfähig machen und eine hoch- und runterzähl Unterscheidung beifügen. Da wir das Grundprinzip für diese Funktionalität aber aus Robert Fromms GitHub Beispiel entnommen haben werde ich hier nicht tiefer darauf eingehen. Mithilfe des Drehencoder ist es uns nun aber möglich, dass wir über kurze if-schleifen eine Überlaufabfrage machen um keine unerlaubten Zahlen zu erreichen oder auch keine anderen ASCII Zeichen über das LCD Ausgegeben werden können. Hier ein Beispiel:
+	 	Für die Einstellung der Uhrzeit haben wir eine Funktion geschrieben, welche die momentan ausgegebene Uhrzeit verändern kann. Dafür wird eine Zählvariable eingeführt, die vom Drehencoder hoch oder runter gezählt werden kann. Also mussten wir zunächst erst den Drehencoder interruptfähig machen und eine hoch- und runterzähl Unterscheidung beifügen. Da wir das Grundprinzip für diese Funktionalität aber aus Robert Fromms GitHub Beispiel entnommen haben werde ich hier nicht tiefer darauf eingehen. Mithilfe des Drehencoders ist es uns nun aber möglich, dass wir über kurze if-schleifen eine Überlaufabfrage machen um keine unerlaubten Zahlen zu erreichen oder auch keine anderen ASCII Zeichen über das LCD Ausgegeben werden können. Hier ein Beispiel:
 	 	\begin{lstlisting}
 if (time.hour == 20)//Zehner der Stunden = 20
 	{//Also noch max. 3 moeglich, da 24 nicht erlaubt ist
@@ -227,7 +229,7 @@ if (time.hour == 20)//Zehner der Stunden = 20
 		}
 	}
 	 	\end{lstlisting}
-	 	Dabei wird unsere Zählvariable a dauerhaft auf dem LCD ausgegeben, damit der Benutzer des Weckers auch sehen kann, was er einstellt. Ist der Nutzer Fertig mit dem einstellen eines Digits und drück den weiter oder zurück Button, dann wird der aktuelle Wert von \lstinline[language=c++]|a| als dezimal Ziffer umgerechnet im zugehörigen Struckt-Element gespeichert. Daraufhin wird \lstinline[language=c++]|a| wieder zu 0 gesetzt und der Cursor je nach Eingabe des Nutzers um eine Stelle nach vorn oder nach hinten verschoben.
+	 	Dabei wird unsere Zählvariable a dauerhaft auf dem LCD ausgegeben, damit der Benutzer des Weckers auch sehen kann, was er einstellt. Ist der Nutzer fertig mit dem Einstellen eines Digits und drückt den Weiter- oder Zurückbutton. Dann wird der aktuelle Wert von \lstinline[language=c++]|a| als Dezimal-Ziffer umgerechnet im zugehörigen Variablenelement gespeichert. Daraufhin wird \lstinline[language=c++]|a| wieder zu 0 gesetzt und der Cursor je nach Eingabe des Nutzers um eine Stelle nach vorn oder nach hinten verschoben.
 	 	\begin{lstlisting}
 if (button_flag & BIT0)           // Weiter-Button
 {
@@ -244,22 +246,22 @@ if (button_flag & BIT1)           // Zurueck-Button
 	setupTimeState = setupTimeStateTenHour;
 }
 	 	\end{lstlisting}
-	 	Dies ganze wird für jedes einzustellende Digit wiederholt und alles zusammen steht in einer switch-case Anweisung, die zwischen den verschiedenen Zuständen von \lstinline[language=c++]|setupTimeState| unterscheidet und somit die Navigation innerhalb des Menüs ermöglicht. \\
+	 	Dieser Ablauf wird für jedes einzustellende Digit wiederholt und alles zusammen steht in einer switch-case Anweisung, die zwischen den verschiedenen Zuständen von \lstinline[language=c++]|setupTimeState| unterscheidet und somit die Navigation innerhalb des Menüs ermöglicht. \\
 	 	\subsection{Einstellung des Datums}
-	 	Bei der Einstellung des Datums sind wir auf die Selbe Weise Vorgegangen wie bisher bei der Uhrzeit. Da wir uns bei der Einstellung des Datums in einem anderen Menüpunkt befinden und dieser auch unabhängig von der Uhrzeiteinstellung sein soll haben wir dies alles in eine weiter Funktion geschrieben. Diese heißt \lstinline[language=c++,]|void setupdate()| und macht im Grunde das selbe wie die eben beschriebene Funktion, ist aber länger. Trotzdem werde ich hier nicht näher darauf eingehen, da dies nicht zu weiterem Verständnis der Funktionalität und dem Aufbau des Programmes beitragen würde.
+	 	Bei der Einstellung des Datums sind wir auf die selbe Weise vorgegangen wie bisher bei der Uhrzeit. Da wir uns bei der Einstellung des Datums in einem anderen Menüpunkt befinden und dieser auch unabhängig von der Uhrzeiteinstellung sein soll, haben wir das alles in eine weitere Funktion geschrieben. Diese heißt \lstinline[language=c++,]|void setupdate()| und macht im Grunde das Selbe wie die eben beschriebene Funktion. Deshalb werde ich hier nicht näher darauf eingehen, da dies nicht zu weiterem Verständnis der Funktionalität und dem Aufbau des Programmes beitragen würde.
 	 	\subsection{(Neu)start des Weckers}
-	 	Bei erstmaligen starten des Programms oder bei Neustart des Weckers, ob über den auf dem Education System verbauten Reset Button oder durch trennen der Stromverbindung, wird über eine Funktion Namens \lstinline[language=c++]|void startupscreen()|, die nur einmalig bei Neustart des Programms ausgeführt wird, die Initialisierung durchlaufen. Das bedeutet, dass der Benutzer auf dem LCD dazu aufgefordert wird die aktuelle Uhrzeit einzugeben und darauf hin die im Kapitel 4.1 beschriebene Funktion aufgerufen wird. Nachdem der Benutzer dann die Zeit eingegeben hat kann er durch bestätigen zur Einstellung des Datums kommen. Hierfür wird die im Kapitel 4.2 beschriebene Funktion aufgerufen. Wenn die Einstellung der Uhrzeit abgeschlossen ist und der Nutzer dies bestätigt wird noch die Funktion zur Wochentagsberechnung ausgeführt und auf dem LCD erscheinen dann die Worten $"$Initialisierung abgeschlossen$"$. Damit ist der Wecker vollständig initialisiert und wechselt automatisch in den Uhrzeit Bildschirm und beginnt damit die Uhrzeit zu zählen und anzuzeigen. \\
-	 	Da die gerade beschriebene Funktion \lstinline[language=c++]|void startupscreen()|, nur aus aufrufen bereits bekannter Funktionen besteht werde ich hier kein Codebeispiel dazu zeigen. \\
+	 	Bei erstmaligen Starten des Programms oder bei Neustart des Weckers, ob über den auf dem Education System verbauten Reset Button oder durch Trennen der Stromverbindung, wird über eine Funktion namens \lstinline[language=c++]|void startupscreen()|, die nur einmalig bei Neustart des Programms ausgeführt wird, die Initialisierung durchlaufen. Das bedeutet, dass der Benutzer auf dem LCD dazu aufgefordert wird die aktuelle Uhrzeit einzugeben und darauf hin die im Kapitel 4.1 beschriebene Funktion aufgerufen wird. Nachdem der Benutzer dann die Zeit eingegeben hat kann er durch bestätigen zur Einstellung des Datums kommen. Hierfür wird die im Kapitel 4.2 beschriebene Funktion aufgerufen. Wenn die Einstellung der Zeit abgeschlossen ist und der Nutzer dies bestätigt wird noch die Funktion zur Wochentagsberechnung ausgeführt und auf dem LCD erscheinen dann die Worte $"$Initialisierung abgeschlossen$"$. Damit ist der Wecker vollständig initialisiert und wechselt automatisch in den Uhrzeit Bildschirm und beginnt damit die Uhrzeit zu zählen und anzuzeigen. \\
+	 	Da die gerade beschriebene Funktion \lstinline[language=c++]|void startupscreen()|, nur aus Aufrufen bereits bekannter Funktionen besteht werde ich hier kein Codebeispiel dazu zeigen. \\
 	 	\section{Alarm}
 	 	Da nun die Grundfunktionen eines Weckers gegeben sind war es an der Zeit sich um zusätzliche Funktionen zu kümmern. Der dabei von uns zuerst bearbeitete Punkt war die Weckfunktion. \\
-	 	Da wir hier vieles Gleichzeitig und auch teilweise Dinge nicht so benutzt haben, wie wir sie uhrspr"unglich geschrieben haben werde ich für diesen Teil davon Abweichen den Code chronologisch zu erläutern, sondern hier die einzelnen Funktionalitäten der Weckfunktion erklären. Dadurch kann es dazu kommen, dass in einigen Beispielen Referenzen zu Funktionen stehen, die bisher noch nicht bekannt sind. Dies lässt sich leider nicht vermeiden und ich hoffe, dass das Verständnis unserer Vorgehensweise nicht darunter zu leiden hat.
+	 	Da wir hier vieles gleichzeitig und auch teilweise Dinge nicht so benutzt haben, wie wir sie uhrspr"unglich geschrieben haben werde ich für diesen Teil davon Abweichen den Code chronologisch zu erläutern, sondern hier die einzelnen Funktionalitäten der Weckfunktion erklären. Dadurch kann es dazu kommen, dass in einigen Beispielen Referenzen zu Funktionen stehen, die bisher noch nicht bekannt sind. Dies lässt sich leider nicht vermeiden.
 	 	\subsection{Einstellen der Alarmzeit}
-		 Für das einstellen der Weckzeit brauchten wir nun lediglich einen weiteren Menüpunkt und konnten dann wieder das Grundprinzip der vorangehend erläuterten Funktion zur Zeiteinstellung nutzen. Da diese Vorgehensweisen aber bereits bekannt sind werde ich nicht weiter darauf eingehen.\\
-		 Zusätzlich haben wir uns auch ein weiteres struckt Element angelegt, welches wieder die Uhrzeitvariablen enthält und eine weitere Variable namens enable. Dieses Struckt kommt mit der Variable alarm und alarmold. Den Grund dafür werde ich später erläutern. \\
-		 Da unser Vorgehen mit dem struct Element ähnlich dem vorherigen ist werde ich auch hier wieder nicht darauf eingehen.\\
-	 	Weiterhin war es jedoch auch nötig dem Nutzer die Möglichkeit zu geben sich nicht wecken zu lassen. Dafür haben wir die Variable enable eingeführt, die grundsätzlich nur zwei Zustände haben kann. 1 zum einschalten des Weckers, was auf dem LCD als $"$EIN$"$ ausgegeben wird und 0, um die Weckfunktion auszuschalten, was auf dem Display des Weckers als $"$AUS$"$ angezeigt wird. Der Zustand von enable wird vom Nutzer auf die selbe Art eingestellt, wie die Einstellung der Weckzeit vorher. \\
+		 Für das Einstellen der Weckzeit brauchten wir nun lediglich einen weiteren Menüpunkt und konnten dann wieder das Grundprinzip der vorangehend erläuterten Funktion zur Zeiteinstellung nutzen. Da diese Vorgehensweisen aber bereits bekannt sind werde ich nicht weiter darauf eingehen.\\
+		 Zusätzlich haben wir uns auch eine weitere Variable angelegt, welche wieder die Uhrzeitvariablen enthält und eine weiteres Variablenelement namens .enable. Von dem neu definierten Typ gibt es die Variablen alarm und alarmold. Den Grund dafür werde ich später erläutern. \\
+		 Da unser Vorgehen mit dem neuen Typ ähnlich dem Vorherigen ist, werde ich auch hier wieder nicht darauf eingehen.\\
+	 	Weiterhin war es jedoch auch nötig dem Nutzer die Möglichkeit zu geben, sich nicht wecken zu lassen. Dafür haben wir das Variablenelement .enable eingeführt, die grundsätzlich nur zwei Zustände haben kann. 1 zum Einschalten des Weckers, was auf dem LCD als $"$EIN$"$ ausgegeben wird und 0, um die Weckfunktion auszuschalten, was auf dem Display des Weckers als $"$AUS$"$ angezeigt wird. Der Zustand von .enable wird vom Nutzer auf die selbe Art eingestellt, wie die Einstellung der Weckzeit vorher (Drehencoder). \\
 	 	\ \\
-	 	Um nun aber auch einen Weckvorgang zu bekommen brauchten wir noch etwas, dass die Aktuelle Zeit mit den in \lstinline[language=c++]|alarm| gespeicherten und vom Nutzer eingegebenen Werten vergleicht. Dafür haben wir folgende if-Anweisung so in unser Hauptprogramm geschrieben, dass sie dauerhaft wieder aufgerufen wird.
+	 	Um nun aber auch einen Weckvorgang zu realisieren brauchten wir noch etwas, das die aktuelle Zeit mit den in \lstinline[language=c++]|alarm| gespeicherten und vom Nutzer eingegebenen Werten vergleicht. Dafür haben wir folgende if-Anweisung so in unser Hauptprogramm geschrieben, dass sie dauerhaft wieder aufgerufen wird.
 	 	\begin{lstlisting}
 	 	 if (time.hour == alarm.hour && time.min == alarm.min
 	 	&& alarm.sec == time.sec && alarm.enable == 1)
@@ -267,30 +269,11 @@ if (button_flag & BIT1)           // Zurueck-Button
 	 		menuState = menuState_WAKEUP;
 	 	}
 	 	\end{lstlisting}
-	 	Diese Schleife vergleicht alle einzelnen Elemente der Zeit mit denen, die im Alarm eingestellt worden sind. Dabei w"aren die Sekunden eigentlich gar nicht von n"oten gewesen, da die Weckzeit nur auf volle Minuten gestellt werden kann. Dennoch vergleichen wir diese mit, da wir somit das Problem umgehen k"onnen, dass der Wecker eine ganze Minute lang durch klingeln w"urde, ohne das der Nutzer in der Lage w"are das Wecken zu unterbrechen. Der Wert von \lstinline[language=c++]|alarm.sec| kann nicht vom Nutzer ge"andert werden und ist 0 by default. Somit l"ost der Alarm nur zur vollen Minute der eingestellten Weckzeit aus und der Kopf der if-Schleife ist auch nur diese eine Sekunde lang wahr. W"urde der Nutzer versuchen innerhalb dieser Sekunde den Alarm wieder abzustellen k"onnte es zu Fehlern kommen und der Abstellknopf m"usste ein weiteres Mal gedr"uckt werden.\\
-	 	Die Zuweisung im Rumpf der Schleife versetzt den Counter unseres Menü-Zählers in Alarmzustand. Das bedeutet, dass sich unsere große switch-case Anweisung in den Zustand \lstinline[language=c++]|WAKEUP| begibt. Dieser wird im Folgenden Kapitel erläutert.
+	 	Diese Schleife vergleicht alle einzelnen Elemente der Zeit mit denen, die im Alarm eingestellt worden sind. Dabei w"aren die Sekunden eigentlich gar nicht von N"oten gewesen, da die Weckzeit nur auf volle Minuten gestellt werden kann. Dennoch vergleichen wir diese mit, da wir somit das Problem umgehen k"onnen, dass der Wecker eine ganze Minute lang durch klingeln w"urde, ohne das der Nutzer in der Lage w"are das Wecken zu unterbrechen. Der Wert von \lstinline[language=c++]|alarm.sec| kann nicht vom Nutzer ge"andert werden und ist 0 by default. Somit l"ost der Alarm nur zur vollen Minute der eingestellten Weckzeit aus und der Kopf der if-Schleife ist auch nur diese eine Sekunde lang wahr. W"urde der Nutzer versuchen innerhalb dieser Sekunde den Alarm wieder abzustellen k"onnte es zu Fehlern kommen und der Abstellknopf m"usste ein weiteres Mal gedr"uckt werden.\\
+	 	Die Zuweisung im Rumpf der Schleife versetzt den Counter unseres Menü-Zählers in Alarmzustand. Das bedeutet, dass sich unsere große switch-case Anweisung in den Zustand \lstinline[language=c++]|WAKEUP| begibt. Dieser wird im folgenden Kapitel erläutert.
 	 	\subsection{Abstellen des Alarms}
-	 	Zum Abstellen des Alarms bedarf es eines einzelnen Knopfdruckes. Durch unsere switch-case Anweisung können wir dies ganz einfach dadurch realisieren, dass wir die Abbruchbedingung in den Kopf einer If-Schleife schreiben und in deren Rumpf wiederum den neuen Zustand für den Menü-Counter definieren. Dies ist zu sehen in den Zeilen 10 bis 12 des folgenden Beispiels:
-	 	\begin{lstlisting}
-	 	 
-	 	 case menuState_WAKEUP:
-	 	 lcd_clear();
-	 	 matrix_clear();
-	 	 setalarmtone();
-	 	 lcd_gotoxy(4, 0);
-	 	 lcd_write("ALARM!");
-	 	 timeCorrection();
-	 	 
-	 	 if (button_flag & BIT0)
-	 	 {
-		 	 menuState = menuState_TIME;
-		 	 stopalarmtone();
-		 	 lcd_clear();
-		 	 button_flag &= ~BIT0;
-	 	 }
-	 	 
-	 	\end{lstlisting}
-	 	Dabei wird im Rumpf der Schleife zusätzlich noch in Zeile 13 der Alarmton ausgeschaltet, der in Zeile 5 aktiviert wurde und das LCD gelöscht, da es während des Weckens mit dem Wort $"$ALARM$"$ beschrieben wird, wie in Zeile 7 zu sehen ist. Dazu jedoch später noch mehr. Außerdem wird auch hier wieder das \lstinline[]|BIT0| getoggelt um erneutes Auslösen ohne ein weiteres Drücken des Tasters zu verhindern.\\
+	 	Zum Abstellen des Alarms bedarf es eines einzelnen Knopfdruckes. Durch unsere switch-case Anweisung können wir dies ganz einfach dadurch realisieren, dass wir die Abbruchbedingung in den Kopf einer if-Schleife schreiben und in deren Rumpf wiederum den neuen Zustand für das menuState definieren.
+	 	
 	 	Die Funktion \lstinline[language=c==++]|timeCorrection()| muss mit während des Weckvorgangs ausgef"uhrt werde, da der Wecker selbst sonst im Hintergrund nicht weiter z"ahlen w"urde. \\
 	 
 	 	\subsection{Klingeln des Weckers}
@@ -321,9 +304,9 @@ if (button_flag & BIT1)           // Zurueck-Button
 
 	 	
 	 	\section{Die LED-Matrix}
-	 	Ein weiteres Feature zum Wecker, welches laut den Vorgaben programmiert werden muss ist die LED-Matrix. Zum Ansteuern der Matrix haben wir uns die von Robert Fromm geschrieben \lstinline[language=c++]|matrix.c| und die dazugehörige \lstinline[language=c++]|matrix.h| in unser Projekt eingebunden. Dort sind unter anderem Funktionen wie die \lstinline[language=c++]|matrix_init()|, welche zur Benutzung der LED-Matrix zwangsläufig von Nöten ist. Auch einige andere essentielle Funktionen sind in diesen Dateien definiert, die in unserem Projekt Verwendung finden. Diese werde ich jedoch nicht alle einzeln erläutern.\\
+	 	Ein weiteres Feature des Weckers, welches laut den Vorgaben programmiert werden muss ist die LED-Matrix. Zum Ansteuern der Matrix haben wir uns die von Robert Fromm geschriebene \lstinline[language=c++]|matrix.c| und die dazugehörige \lstinline[language=c++]|matrix.h| in unser Projekt eingebunden. Dort sind unter anderem Funktionen wie die \lstinline[language=c++]|matrix_init()|, welche zur Benutzung der LED-Matrix zwangsläufig aufgerufen werden muss. Auch einige andere essentielle Funktionen sind in diesen Dateien definiert, die in unserem Projekt Verwendung finden. Diese werde ich jedoch nicht alle einzeln erläutern.\\
 	 	\ \\
-	 	Zu Beginn haben wir eine Funktion geschrieben, welche die komplette Matrix zum leuchten bringen kann und eine, welche alle LED's der Matrix wieder ausschaltet. Benutzt haben wir davon letztendlich nur die zum ausschalten, aber behalten haben wir die andere für Verwendung zu späteren Zeitpunkten trotzdem. Im Beispiel ist nun die Verwendete Funktion zum ausschalten der Matrix zu sehen:
+	 	Zu Beginn haben wir eine Funktion geschrieben, welche die komplette Matrix zum leuchten bringen kann und eine, welche alle LED's der Matrix wieder ausschaltet. Benutzt haben wir davon letztendlich nur die zum ausschalten, aber behalten haben wir die andere für Verwendung zu späteren Zeitpunkten trotzdem. Im Beispiel ist nun die Verwendete Funktion zum Ausschalten der Matrix zu sehen:
 	 	\begin{lstlisting}
 	 	void matrix_clear()
 	 	{
@@ -333,8 +316,8 @@ if (button_flag & BIT1)           // Zurueck-Button
 		 	matrix_write_row(3, 0b0000);
 	 	}
 	 	\end{lstlisting}
-	 	Diese Funktion wurde bereits im Kapitel 5.2 im Codebeispiel zum Alarm benutzt. Sie tut nichts weiter, als dass sie alle Elemente der Matrix mit Nullen beschreibt, also alle LED's ausschaltet.\\
-	 	Die Funktion zum einschalten der Matrix sieht dieser sehr ähnlich, bis auf dass in den Klammern als zweiter wert überall eine binäre 15, also vier Einsen stehen um die einzelnen LED's der Matrix einzuschalten. \\
+	 	Diese Funktion tut nichts weiter, als dass sie alle Elemente der Matrix mit Nullen beschreibt, also alle LED's ausschaltet.\\
+	 	Die Funktion zum Einschalten der Matrix sieht dieser sehr ähnlich, bis auf, dass in den Klammern als zweiter Wert überall eine binäre 15, also vier Einsen stehen um die einzelnen LED's der Matrix einzuschalten. \\
 	 	\ \\
 	 	Für das Lauflicht auf der Matrix ist es wichtig, dass die einzelnen anzuzeigenden Zeichen irgendwo hinterlegt sind. Da wir nur die Zeit anzeigen wollen brauchten wir die Zahlen von 0 bis 9. Wie diese auf der Matrix aussehen sollen ist im folgenden Vektor hinterlegt.
 	 	\begin{lstlisting}
@@ -351,8 +334,8 @@ if (button_flag & BIT1)           // Zurueck-Button
 			 	{ 0b1011, 0b1011, 0b1111 }    //9
 	 	};
 	 	\end{lstlisting}
-	 	Dabei bilden immer drei der Zeilen eine Zahl. Jede der Zeilen steht dabei für eine Spalte auf der Matrix. Bildlich vorstellen kann man sich das am besten am Beispiel der Null. Da hat der erste Eintrag vier Einsen, in der ersten Spalte der Matrix sind also alle LED's an. Der zweite Eintrag besteht aus zwei Nullen umgeben von je einer Eins, daraus resultiert in der zweiten Spalte der Matrix, dass die obere und die untere LED an sind, die dazwischen aus. Der dritte Eintrag ist wieder gleich dem ersten, es entsteht wieder eine voll eingeschaltete Spalte. Das hintereinander ergibt das ungefähre Abbild einer Null in den ersten drei Spalten der Matrix. \\
-	 	Damit sind wir nun in der Lage eine Zahl zur Zeit in der Matrix anzuzeigen, jedoch haben wir noch nicht das geforderte Lauflicht. Dafür haben wir uns eine Vektor mit 20 Einträgen definiert, der in einer Funktion immer mit der momentanen Zeit und denn nötigen Trenn- und Leerzeichen beschrieben wird. Dies sieht wie folgt aus:
+	 	Dabei bilden immer drei der Binärzahlen eine Ziffer. Jede der Zeilen steht dabei für eine Spalte auf der Matrix. Bildlich vorstellen kann man sich das am besten am Beispiel der Null. Da hat der erste Eintrag vier Einsen, in der ersten Spalte der Matrix sind also alle LED's an. Der zweite Eintrag besteht aus zwei Nullen umgeben von je einer Eins, daraus resultiert in der zweiten Spalte der Matrix, dass die obere und die untere LED an sind, die beiden dazwischen aus. Der dritte Eintrag ist wieder gleich dem ersten, es entsteht wieder eine voll eingeschaltete Spalte. Das hintereinander ergibt das Abbild einer Null in den ersten drei Spalten der Matrix. \\
+	 	Damit sind wir nun in der Lage eine Zahl zur Zeit in der Matrix anzuzeigen, jedoch haben wir noch nicht das geforderte Lauflicht. Dafür haben wir uns einen Vektor mit 20 Einträgen definiert, der in einer Funktion immer mit der momentanen Zeit und denn nötigen Trenn- und Leerzeichen beschrieben wird. Dies sieht wie folgt aus:
 	 	\begin{lstlisting}
 void array_input()
 {	...
@@ -371,9 +354,9 @@ void array_input()
 	 	\end{lstlisting}
 	 	output[] ist der bereits genannte Vektor. Seine ersten vier Elemente werden nur mit Nullen beschrieben, damit die Uhrzeit "reinlaufen" kann und nicht bei Aufruf der Funktion bereits die erste Zahl auf der Matrix steht. Davon ist hier jedoch nur noch das vierte Element zu sehen. \\
 	 	Die Zeilen 4 bis 6 des Codebeispiels errechnen die Zehner der Stunde und verlangen den Wert des Vektors Zahlen in Abhängigkeit der errechneten Stunde. Das zweite Argument des Vektors zahlen ist dabei für die drei benötigten Spalten verantwortlich, die benötigt werden, um eine Zahl darzustellen.\\
-	 	In Zeile 7 ist dann eine Leerzeile als Trennung zwischen den Zahlen eingefügt, dann wiederholt sich das ganze mit den Einern der Stunde und in Zeile 12 ist ein Doppelpunkt als Trennung zwischen Stunden und Minuten eingefügt. Danach wiederholt sich das ganze noch für die Minuten, was hier jetzt aber nicht mit abgebildet ist, da das Vorgehen dafür identisch ist.\\
+	 	In Zeile 7 ist dann eine Leerzeile als Trennung zwischen den Zahlen eingefügt, dann wiederholt sich das ganze mit den Einern der Stunde. In Zeile 12 ist ein Doppelpunkt als Trennung zwischen Stunden und Minuten eingefügt. Identisch wird mit den Minuten verfahren.\\
 	 	\ \\
-	 	Für das Lauflicht ist nun die Grundlage gelegt. Ein Vektor, der die gesamte Uhrzeit so enthält, inklusive der Trenn- und Leerzeichen, die benötigt werden um die Zeit lesen zu können. Da die Matrix aber nur vier Elemente breit ist und wir 20 haben kommt nun das laufen ins Spiel. Dafür haben wir eine weitere Funktion geschrieben, die dafür sogt, dass immer nur vier Elemente unseres Vektors \lstinline[]|output[]| auf der Matrix ausgibt:
+	 	Für das Lauflicht ist nun die Grundlage gelegt. Ein Vektor, der die gesamte Uhrzeit so enthält, inklusive der Trenn- und Leerzeichen, die benötigt werden um die Zeit lesen zu können. Da die Matrix aber nur vier Elemente breit ist und wir 20 haben kommt nun das Laufen ins Spiel. Dafür haben wir eine weitere Funktion geschrieben, die dafür sorgt, dass immer nur vier Elemente unseres Vektors \lstinline[]|output[]| auf der Matrix ausgibt:
 	 	\begin{lstlisting}
 void array_output()
 {
@@ -389,8 +372,14 @@ void array_output()
 	k++;
 }
 	 	\end{lstlisting}
-	 	Dabei werden alle vier Spalten der Matrix beschrieben und zwar mit den Werten, die im vorher beschriebenen Vektor stehen und das in Abhängigkeit der Variablen k. Diese ist eine lokale variable, die bei jedem Funktionsaufruf um eins nach oben gezählt wird und bei 21 auf 0 zurück gesetzt wird, damit nicht irgendwelche Elemente des Vektors \lstinline[]|output[]| angefordert werden, die es gar nicht gibt. Nun wird in die Spalte ganz links auf der Matrix der Wert des Vektors \lstinline[]|output[k]| geschrieben und in die nächste Spalte  der Wert von k+1 usw. So sind weiterhin die zusammengehörigen Zahlen zu sehen und da k bei jedem Durchlauf um eins erhöht wird bewegt sich die Schrift mit der Zeit nach links.\\
-	 	Aufgerufen wird die Funktion im Hauptprogramm. Da wir die Matrix schneller laufen lassen wollten als nur mit einer Spalte pro Sekunde haben wir hierfür den Interrupt Vektor des Watchdog-Timers so verändert, dass er zwei Flags ausgibt, die \lstinline[]|clock_flag| und die bereits erwähnte \lstinline[]|second_flag|. \newpage
+	 	Dabei werden alle vier Spalten der Matrix beschrieben und zwar mit den Werten, die im vorher beschriebenen Vektor stehen und das in Abhängigkeit der Variablen k. Diese ist eine lokale Variable, die bei jedem Funktionsaufruf um eins nach oben gezählt wird und beim Erreichen von 21 auf 0 zurück gesetzt wird, damit nicht irgendwelche Elemente des Vektors \lstinline[]|output[]| angefordert werden, die es gar nicht gibt. Nun wird in die Spalte ganz links auf der Matrix der Wert des Vektors \lstinline[]|output[k]| geschrieben und in die nächste Spalte  der Wert von k+1 usw. So sind weiterhin die zusammengehörigen Zahlen zu sehen und da k bei jedem Durchlauf um eins erhöht wird bewegt sich die Schrift mit der Zeit nach links.\\
+	 	Aufgerufen wird die Funktion im Hauptprogramm. Da wir die Matrix schneller laufen lassen wollten als nur mit einer Spalte pro Sekunde haben wir hierfür den Interrupt Vektor des Watchdog-Timers so verändert, dass er zwei Flags ausgibt, die \lstinline[]|clock_flag| und die bereits erwähnte \lstinline[]|second_flag|.
+Damit der Watchdog-Timer nun viertelsekündlich einen Interrupt auslöst musste er wie folgt neu konfiguriert werden:
+	\begin{lstlisting}
+	WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL + WDTIS0; 
+	IE1 |= WDTIE; 
+	\end{lstlisting}
+Hier noch einmal die aktualisierte Interruptserviceroutine für den Watchdog-Timer:
 	 	\begin{lstlisting}
 #pragma vector=WDT_VECTOR    
 void WDT_ISR()
@@ -405,8 +394,10 @@ void WDT_ISR()
 	}
 	__low_power_mode_off_on_exit();
 }
-	 	\end{lstlisting}
-	 	Der Aufruf der Funktion sieht dann folgendermaßen aus:
+	 	\end{lstlisting}	
+
+\newpage
+Der Aufruf der Funktion sieht dann folgendermaßen aus:
 	 	\begin{lstlisting}
  if (clock_flag & BIT0)
 {
@@ -414,9 +405,9 @@ void WDT_ISR()
 	array_output();
 }
 	 	\end{lstlisting}
-	 	Damit ist unser Wecker mit all seinen Benötigten und zusätzlichen Funktionen fertig. Er kann die Uhrzeit über das LCD anzeigen, sie lässt sich auch einstellen, es gibt eine Weckfunktion und die LED-Matrix Zeigt immer die Aktuelle Zeit an.\\
+	 	Damit ist unser Wecker mit all seinen benötigten und zusätzlichen Funktionen fertig. Er kann die Uhrzeit über das LCD anzeigen, sie lässt sich auch einstellen, es gibt eine Weckfunktion und die LED-Matrix zeigt immer die Aktuelle Zeit an.\\
 	 	\ \\
-	 	Daraus ergibt sich der folgende Programm-Ablaufplan:
+	 	Daraus ergibt sich der auf der nächsten Seite folgende Programm-Ablaufplan:
 	 	\begin{figure}[htbp] 
 	 		\centering
 	 		\includegraphics[width=0.6\textwidth]{Untitled Diagram.png}
