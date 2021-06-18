@@ -23,12 +23,10 @@ typedef struct              //Variablen für die Weckerzeiten
     uint16_t year;
 } time_t;
 
-
-
 time_t time;
+time_t timeold;
 
-
-extern volatile uint16_t a;                   //Zählervariable für Drehencoder
+extern volatile int16_t a;                   //Zählervariable für Drehencoder
 extern volatile uint8_t weekdayi;               //Laufvariable für die Wochentage 0=Son ; 6=Sam
 
 //Funktionsprototypen

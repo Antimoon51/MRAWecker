@@ -14,8 +14,6 @@
 #include "alarm.h"
 #include "matrix.h"
 
-extern volatile uint8_t d = 0;
-
 void setupalarm()
 {
     button_flag = 0;
@@ -119,7 +117,7 @@ void setupalarm()
     button_flag &= ~BIT0;
     alarm.min = alarm.min + (a - 48);
 
-    a = 48;                                                    //Alarm EIN/AUS
+    a = alarm.enable + 48;                                       //Alarm EIN/AUS
     while (!(button_flag & BIT0))
     {
         if (a > 49)
@@ -151,7 +149,7 @@ void setupalarm()
 
     button_flag &= ~BIT0;
     lcd_write("               ");
-    d = a - 48;
+    alarm.enable = a - 48;
 
 }
 
@@ -166,14 +164,15 @@ void outputalarm()
 
 void alarmmenu()
 {
+    __delay_cycles(5000);
     button_flag = 0;
     lcd_clear();
     while (!(button_flag & BIT5))
     {
         lcd_gotoxy(0, 0);
-        lcd_write("Alarme:");
+        lcd_write("Alarm:");
         lcd_gotoxy(0, 1);
-        lcd_write("set alarm 1");
+        lcd_write("Alarm einstellen");
         lcd_gotoxy(0, 1);
         __low_power_mode_3();
 
@@ -185,7 +184,14 @@ void alarmmenu()
             lcd_gotoxy(0, 1);
             outputalarm();
             lcd_gotoxy(8, 1);
-            lcd_write("AUS");
+            if (alarm.enable == 1)
+            {
+                lcd_write("EIN");
+            }
+            else
+            {
+                lcd_write("AUS");
+            }
             lcd_cursor_on();
             setupalarm();
             lcd_cursor_off();
@@ -194,21 +200,33 @@ void alarmmenu()
     }
     button_flag &= ~BIT5;
     lcd_clear();
+
 }
 
-void wakeup()
+
+void setalarmtone()
 {
-    __delay_cycles(100000);
-
-    lcd_write("ALARM!!!");
-
-
-    __delay_cycles(100000);
-    lcd_clear();
+    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
+    P2DIR |= BIT4;
 
 }
 
-void setalarmtone(){
+void stopalarmtone()
+{
+    P2SEL &= ~BIT4;                              //Konfiguratio für Tonausgabe
+    P2DIR &= ~BIT4;
+}
 
-    TACTL = TASSEL_1 + MC_2 + TACLR;
+void outputindicator()
+{
+    if (alarm.enable == 1)
+    {
+        lcd_gotoxy(15, 0);
+        lcd_write("A");
+    }
+    else
+    {
+        lcd_gotoxy(15, 0);
+        lcd_write(" ");
+    }
 }

@@ -188,3 +188,15 @@ void lcd_cursor_on() {
 void lcd_cursor_off() {
     send_4bit(0x0C, LCD_COMMAND);
 }
+
+void lcd_clear_line_1(){
+    lcd_gotoxy(0,0);
+    lcd_write("                ");
+    lcd_gotoxy(0,0);
+}
+
+void lcd_clear_line_2(){
+    lcd_gotoxy(0,1);
+    lcd_write("                ");
+    lcd_gotoxy(0,1);
+}

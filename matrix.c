@@ -13,7 +13,7 @@ int k;
 uint8_t zahlen[10][3] = { { 0b1111, 0b1001, 0b1111 },    //0
         { 0b1010, 0b1111, 0b1000 },    //1
         { 0b1001, 0b1101, 0b1011 },    //2
-        { 0b1001, 0b1011, 0b1110 },    //3
+        { 0b1001, 0b1011, 0b1111 },    //3
         { 0b0111, 0b0100, 0b1110 },    //4
         { 0b1011, 0b1011, 0b1101 },    //5
         { 0b1111, 0b1011, 0b1101 },    //6
@@ -146,16 +146,16 @@ void array_input()
     output[18] = zahlen[time.min % 10][0];
     output[19] = zahlen[time.min % 10][1];
     output[20] = zahlen[time.min % 10][2];
-    output[21] = 0b0000;
-    output[22] = 0b0000;
-    output[23] = 0b0000;
-    output[24] = 0b0000;
+//    output[21] = 0b0000;
+//    output[22] = 0b0000;
+//    output[23] = 0b0000;
+//    output[24] = 0b0000;
 }
 
 void array_output()
 {
 
-    if (k > 24)
+    if (k > 20)
     {
         k = 0;
     }

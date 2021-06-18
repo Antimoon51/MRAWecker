@@ -14,6 +14,10 @@
 #include "alarm.h"
 #include "matrix.h"
 
+uint8_t clock = 0;
+uint8_t clock_flag = 0;
+
+uint8_t toneccr = 37;
 /*-----------------------------------------------------------------*/
 //ANFANG HAUPTPROGRAMM
 /*-----------------------------------------------------------------*/
@@ -36,73 +40,155 @@ int main(void)
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
 
-//    P2SEL |= BIT4;                              //Konfiguratio für Tonausgabe
-//    P2DIR |= BIT4;
-//    CCR2 = 37;
-//    CCTL2 = CCIE + OUTMOD_4;
+    P2SEL &= ~BIT4;                              //Konfiguratio für Tonausgabe
+    P2DIR &= ~BIT4;
+    CCR2 = toneccr;
+    CCTL2 = CCIE + OUTMOD_4;
 
     CCR0 = MATRIX_UPDATE_INTERVAL;    // Timer A mit regelmäßigen CCR0-Interrupt
     CCTL0 = CCIE;
+
     TACTL = TASSEL_1 + MC_2 + TACLR;
 
     P2IES |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3; //interrupt init Button und drehencoder
     P2IFG &= ~(BIT0 + BIT1 + BIT2 + BIT5 + BIT3);
     P2IE |= BIT0 + BIT1 + BIT2 + BIT5 + BIT3;
 
-    __enable_interrupt();
-
     lcd_init();  //Initialisiert das Display
-
-    //startupscreen();
-
     matrix_init();
 
-    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL; //Intitialisierung des Watchdog Timers set for 1sec im continuos mode, reset to 0, selected ACLK as source
+    __enable_interrupt();
+
+    menuState = menuState_TIME;
+    startupscreen();
+
+    WDTCTL = WDTPW + WDTTMSEL + WDTCNTCL + WDTSSEL + WDTIS0; //Intitialisierung des Watchdog Timers set for 1sec im continuos mode, reset to 0, selected ACLK as source
     IE1 |= WDTIE;           //WDT Interrupt enable
 
     button_flag &= ~(BIT0 + BIT1 + BIT2 + BIT3 + BIT5);
 
     while (1)
     {
-        if (button_flag & BIT5)
-        {      //switch 1 enter Alarmmenü
-            button_flag &= ~BIT5;
-            alarmmenu();
-        }
-
-        if (second_flag & BIT0)
-        {
-            second_flag &= ~BIT0;
-            timeCorrection();
-            lcd_gotoxy(4, 0);
-            outputtime();
-            lcd_gotoxy(5, 1);
-            outputdate();
-            outputday();
-            array_output();
-
-        }
-
         if (time.hour == alarm.hour && time.min == alarm.min
-                && alarm.sec == time.sec && d == 1)
+                && alarm.sec == time.sec && alarm.enable == 1)
         {
+            menuState = menuState_WAKEUP;
+        }
 
-
-
+        if (button_flag & BIT5)                 //ENTER MAINMENU
+        {
+            button_flag &= ~BIT5;
             lcd_clear();
-            setalarmtone();
-
-            while (!(button_flag & BIT0))
+            matrix_clear();
+            a = 0;
+            while (!(button_flag & BIT5))
             {
+                lcd_gotoxy(0, 0);
+                lcd_write("Hauptmenu");
 
-                wakeup();
-                timeCorrection();
+                switch (a)
+                {
+                case menuState_TIME:
+                    lcd_clear_line_2();
+                    lcd_gotoxy(0, 1);
+                    lcd_write("Zeitanzeige");
+                    menuState = a;
+                    break;
 
+                case menuState_ALARM:
+                    lcd_clear_line_2();
+                    lcd_write("Meine Alarme");
+                    menuState = a;
+                    break;
+
+                case menuState_SETUP:
+                    lcd_clear_line_2();
+                    lcd_write("Einstellungen");
+                    menuState = a;
+                    break;
+
+                }       //switchklammer
+
+                __low_power_mode_3();
+                if (a > 2)
+                {
+                    a = 0;
+                }
+                if (a < 0)
+                {
+                    a = 2;
+                }
 
             }
-            button_flag &= ~BIT0;
-            TACTL = 0;
+            button_flag &= ~BIT5;
+        }
+
+        switch (menuState)
+        {
+
+        case menuState_TIME:
+            if (second_flag & BIT0)
+            {
+                second_flag &= ~BIT0;
+                lcd_clear();
+                timeCorrection();
+                lcd_gotoxy(4, 0);
+                outputtime();
+                lcd_gotoxy(5, 1);
+                outputdate();
+                outputday();
+                outputindicator();
+            }
+            if (clock_flag & BIT0)
+            {
+                clock_flag &= ~BIT0;
+                array_output();
+            }
+            break;
+
+        case menuState_ALARM:
             lcd_clear();
+            matrix_clear();
+            alarmmenu();
+            menuState = menuState_TIME;
+            break;
+
+        case menuState_SETUP:
+            lcd_clear();
+            matrix_clear();
+            lcd_write("Zeiteinstellung:");
+            lcd_gotoxy(4, 1);
+            lcd_cursor_on();
+            lcd_write("00:00:00");
+            setuptime();
+            lcd_cursor_off();
+            lcd_clear();
+            lcd_write("Datum: ?");
+            lcd_gotoxy(3, 1);
+            lcd_cursor_on();
+            lcd_write("01:01:2019");
+            setupdate();
+            lcd_cursor_off();
+            weekdayinit();
+            menuState = menuState_TIME;
+            break;
+
+        case menuState_WAKEUP:
+            lcd_clear();
+            matrix_clear();
+            setalarmtone();
+            lcd_gotoxy(4, 0);
+            lcd_write("ALARM!");
+            timeCorrection();
+
+            if (button_flag & BIT0)
+            {
+                menuState = menuState_TIME;
+                stopalarmtone();
+                lcd_clear();
+                button_flag &= ~BIT0;
+            }
+
         }
 
         __low_power_mode_3();
@@ -123,8 +209,14 @@ int main(void)
 __interrupt
 void WDT_ISR()
 {
-    time.sec++;
-    second_flag = BIT0;
+    clock++;
+    clock_flag |= BIT0;
+    if (clock > 3)
+    {
+        clock = 0;
+        time.sec++;
+        second_flag = BIT0;
+    }
     __low_power_mode_off_on_exit();
 }
 
@@ -164,10 +256,12 @@ void PORT2_ISR()
         if (P4IN & BIT1)
         {          // downwards
             a--;
+            button_flag |= BIT3;
         }
         else if (P4IN & BIT2)
         {   //upwards
             a++;
+            button_flag |= BIT3;
         }
 
         __low_power_mode_off_on_exit();
@@ -180,7 +274,6 @@ __interrupt void TIMERA0_ISR()
 {
     CCR0 += MATRIX_UPDATE_INTERVAL;
     matrix_update();
-    __low_power_mode_off_on_exit();
 }
 
 #pragma vector=TIMERA1_VECTOR
@@ -193,7 +286,23 @@ __interrupt void TimerA1_ISR()
         break;
     case 4:
         // CCR2 Interrupt
-        CCR2 += 37;
+        CCR2 += toneccr;
+        if (clock == 0)
+        {
+            toneccr = 30;
+        }
+        else if (clock == 1)
+        {
+            toneccr = 37;
+        }
+        else if (clock == 2)
+        {
+            toneccr = 52;
+        }
+        else if (clock == 3)
+        {
+            toneccr = 74;
+        }
         break;
     case 10:
         // Timer Overflow
